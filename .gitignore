@@ -1,0 +1,13 @@
+.venv/
+__pycache__/
+*.pyc
+node_modules/
+.databricks/
+*.bak
+.DS_Store
+
+# Excel autosave / lock files
+~$*.xls*
+
+# Local outputs from build_excel_data.py reruns (keep committed fixtures only)
+demo_01_rfr_etl/excel/_scratch/

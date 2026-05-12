@@ -1,0 +1,122 @@
+# Actuarial Excel Accelerator
+
+A public Databricks accelerator showing actuaries how to migrate
+Excel + VBA processes to Databricks. Three demos, one repo, one
+migration recipe.
+
+## What's in the box
+
+| Demo | What gets migrated | Status |
+|---|---|---|
+| **1. EIOPA Risk-Free Rate ingestion** | Monthly EIOPA term-structure file → VBA reshape → Excel curve history | ✅ Built |
+| **2. Solvency II SCR Standard Formula** | Multi-tab SCR workbook with hardcoded module aggregation | _Coming soon_ |
+| **3. Chain-Ladder Reserving** | Run-off triangle workbook with development factors | _Coming soon_ |
+
+All three demos share one catalog + one schema. Demo 2 and 3 consume
+the gold table from Demo 1 (`rfr_curves`).
+
+## The take-away: a migration recipe
+
+The point of this accelerator is not the curves. It is the
+**migration recipe**: a repeatable 6-step pattern for moving an
+Excel + VBA process to Databricks. See [`MIGRATION_RECIPE.md`](MIGRATION_RECIPE.md).
+
+```
+Inventory → Decompose → Land → Rebuild → Validate parity → Operate
+```
+
+Each demo applies that recipe end-to-end so you can see the pattern
+on a process that resembles yours.
+
+## Deploy demo 1
+
+You'll need:
+- Databricks workspace with serverless compute and Unity Catalog
+- Databricks CLI v0.200+ (`brew install databricks/tap/databricks`)
+
+```bash
+# 1. Clone
+git clone https://github.com/wryszka/actuarial-excel-accelerator.git
+cd actuarial-excel-accelerator
+
+# 2. Point databricks.yml at your workspace
+#    Edit host: and profile: under targets.default
+#    Override variables if your catalog/schema/warehouse differs
+
+# 3. Deploy
+databricks bundle deploy
+
+# 4. Run UC setup (creates schema + rfr_landing volume — idempotent)
+databricks bundle run setup_demo
+
+# 5. Upload the sample EIOPA files to the volume
+databricks fs cp demo_01_rfr_etl/sample_data/ \
+    dbfs:/Volumes/<catalog>/actuarial_excel_demo/rfr_landing/ \
+    --recursive
+
+# 6. Run the end-to-end demo 1 job
+databricks bundle run run_rfr_etl
+
+# 7. Validate
+databricks bundle run validate_rfr
+```
+
+## Overriding catalog / schema / warehouse
+
+Three ways, all equivalent:
+
+```bash
+# (a) per-deploy
+databricks bundle deploy --var "catalog_name=my_catalog,schema_name=my_schema"
+
+# (b) edit databricks.yml under targets.default.variables (preferred for a fixed setup)
+
+# (c) per-run for a single job
+databricks bundle run run_rfr_etl --params catalog_name=my_catalog
+```
+
+| Variable | Default | What it controls |
+|---|---|---|
+| `catalog_name` | `lr_serverless_aws_us_catalog` | UC catalog for all tables |
+| `schema_name` | `actuarial_excel_demo` | Schema shared across demos 1-3 |
+| `warehouse_id` | _(SP-managed serverless PRO)_ | Warehouse for ad-hoc SQL |
+| `rfr_volume_name` | `rfr_landing` | Volume where demo 1 monthly files land |
+
+## Repository layout
+
+```
+├── README.md                   # this file
+├── MIGRATION_RECIPE.md         # the cross-cutting take-away
+├── databricks.yml              # DAB config + variables + target
+├── resources/
+│   ├── jobs.yml                # setup + monthly orchestration jobs
+│   └── pipelines.yml           # DLT silver pipeline
+├── shared/
+│   └── uc_setup.py             # catalog/schema/volume — one notebook for all demos
+├── demo_01_rfr_etl/
+│   ├── README.md
+│   ├── excel/
+│   │   ├── RFR_Master.xlsm     # the "before" — author's Excel + VBA workbook
+│   │   ├── VBA_SPEC.md         # spec for the VBA modules inside the .xlsm
+│   │   └── build_excel_data.py # generates an .xlsx version of RFR_Master
+│   ├── sample_data/            # synthetic EIOPA monthly files (.xlsx)
+│   └── src/
+│       ├── 01_bronze_autoloader.py  # Volume → bronze (file-as-blob)
+│       ├── 02_silver_dlt.sql        # DLT unpivot + DQ expectations + forward rate
+│       ├── 03_gold_publish.py       # publish rfr_curves with Genie-ready comments
+│       └── 99_validate.py           # smoke test
+└── .gitignore
+```
+
+## About this demo
+
+This is a synthetic demonstration. The EIOPA-shaped files in
+`sample_data/` are fully synthetic — they reproduce the file layout
+of the EIOPA monthly publication but contain made-up rates. The
+real published curves are at
+[eiopa.europa.eu/tools-and-data/risk-free-interest-rate-term-structures_en](https://www.eiopa.europa.eu/tools-and-data/risk-free-interest-rate-term-structures_en).
+No customer data is used.
+
+## Licence
+
+MIT.

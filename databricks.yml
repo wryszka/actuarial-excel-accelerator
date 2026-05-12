@@ -1,0 +1,36 @@
+bundle:
+  name: actuarial-excel-accelerator
+
+# Variables — override at deploy time with `databricks bundle deploy --var key=value`
+# or by editing the `targets:` block below. Defaults work on any serverless workspace
+# with Unity Catalog, once `catalog_name` and `warehouse_id` are pointed at yours.
+variables:
+  catalog_name:
+    description: Unity Catalog name for all accelerator tables
+    default: lr_serverless_aws_us_catalog
+  schema_name:
+    description: Schema name shared by all demos in this accelerator
+    default: actuarial_excel_demo
+  warehouse_id:
+    description: SQL warehouse used for ad-hoc queries from notebooks and the validate step
+    default: "ab79eced8207d29b"
+  rfr_volume_name:
+    description: UC Volume where demo 1 EIOPA monthly RFR files land
+    default: rfr_landing
+
+# Single target — `default`. Override workspace host/profile to your own.
+targets:
+  default:
+    mode: development
+    default: true
+    workspace:
+      host: https://fevm-lr-serverless-aws-us.cloud.databricks.com
+      profile: DEFAULT
+
+sync:
+  exclude:
+    - "*.bak"
+    - "*.xlsm"  # Excel macro files are fixtures only — don't sync to workspace
+
+include:
+  - resources/*.yml

@@ -1,0 +1,17 @@
+# DLT pipelines used by the accelerator.
+#
+# Demo 1: silver_rfr — reads bronze_rfr_curves, unpivots + expectations
+#                      + derives forward rate, materialises silver_rfr_curves.
+# Demo 2 + 3 will add their own pipelines here.
+
+resources:
+  pipelines:
+    silver_rfr:
+      name: "Silver — EIOPA RFR (demo 1)"
+      catalog: ${var.catalog_name}
+      target: ${var.schema_name}
+      channel: CURRENT
+      serverless: true
+      libraries:
+        - notebook:
+            path: ../demo_01_rfr_etl/src/02_silver_dlt.sql
