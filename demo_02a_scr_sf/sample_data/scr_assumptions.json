@@ -1,0 +1,32 @@
+{
+  "_comment": "Versioned SCR assumptions. Loaded into the scr_assumptions UC table. The current row drives all live compute.",
+  "_calibration_disclaimer": "Sigma values track the EIOPA Standard Formula Annex shape for the corresponding lines of business (motor liability, property, general liability, miscellaneous financial loss) but are reduced to a 4-LoB scheme and are NOT certified for production capital calculation. Demo-grade only.",
+  "versions": [
+    {
+      "assumption_version": "v1_2025_12",
+      "effective_date": "2025-12-31",
+      "is_current": true,
+      "comment": "Initial demo calibration. 4 NL LoBs, simplified BSCR with one Market×UW correlation.",
+      "nl_lob_order": ["Motor", "Property", "Liability", "Other"],
+      "nl_lob_sigmas": [
+        {"lob": "Motor",     "sigma_prem": 0.10, "sigma_res": 0.095},
+        {"lob": "Property",  "sigma_prem": 0.08, "sigma_res": 0.11},
+        {"lob": "Liability", "sigma_prem": 0.14, "sigma_res": 0.19},
+        {"lob": "Other",     "sigma_prem": 0.13, "sigma_res": 0.15}
+      ],
+      "nl_lob_correlation": [
+        [1.00, 0.50, 0.50, 0.25],
+        [0.50, 1.00, 0.25, 0.25],
+        [0.50, 0.25, 1.00, 0.50],
+        [0.25, 0.25, 0.50, 1.00]
+      ],
+      "bscr_rho_market_uw": 0.25,
+      "op_factor": 0.03,
+      "cat_plug": 45000000.0,
+      "lacdt": 12000000.0,
+      "ir_shock_up_bps": 200,
+      "ir_shock_down_bps": -200,
+      "ir_shock_down_floor": -0.01
+    }
+  ]
+}

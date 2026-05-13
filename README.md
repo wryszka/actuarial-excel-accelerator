@@ -9,7 +9,7 @@ migration recipe.
 | Demo | What gets migrated | Status |
 |---|---|---|
 | **1. EIOPA Risk-Free Rate ingestion** | Monthly EIOPA term-structure file → VBA reshape → Excel curve history | ✅ Built |
-| **2. Solvency II SCR Standard Formula** | Multi-tab SCR workbook with hardcoded module aggregation | _Coming soon_ |
+| **2A. Solvency II SCR Standard Formula** | Multi-tab SCR workbook with hardcoded module aggregation + scenario macro | ✅ Built |
 | **3. Chain-Ladder Reserving** | Run-off triangle workbook with development factors | _Coming soon_ |
 
 All three demos share one catalog + one schema. Demo 2 and 3 consume
@@ -61,6 +61,29 @@ databricks bundle run run_rfr_etl
 databricks bundle run validate_rfr
 ```
 
+## Deploy demo 2A (after demo 1)
+
+Demo 2A reads `rfr_curves` from demo 1 to discount liability cash
+flows in the Market IR sub-module. Make sure demo 1 has been run
+end-to-end first.
+
+```bash
+# Load inputs + assumptions
+databricks bundle run scr_setup --target dev
+
+# The full demo arc — orchestrator → parity test → MLflow sweep →
+# UC SQL UDF registration → Lakeview dashboard
+databricks bundle run scr_full_run --target dev
+
+# Smoke test
+databricks bundle run scr_validate --target dev
+```
+
+Demo 2A's round-trip story: open `demo_02a_scr_sf/excel/SCR_StandardFormula.xlsm`,
+type shocks into the `Round_Trip` tab, hit Refresh. Power Query calls
+the UC `scr_total` UDF; Databricks computes the breakdown; the result
+flows back into the workbook.
+
 ## Overriding catalog / schema / warehouse
 
 Three ways, all equivalent:
@@ -105,6 +128,26 @@ databricks bundle run run_rfr_etl --params catalog_name=my_catalog
 │       ├── 02_silver_dlt.sql        # DLT unpivot + DQ expectations + forward rate
 │       ├── 03_gold_publish.py       # publish rfr_curves with Genie-ready comments
 │       └── 99_validate.py           # smoke test
+├── demo_02a_scr_sf/
+│   ├── README.md
+│   ├── excel/
+│   │   ├── SCR_StandardFormula.xlsm  # the "before" — Excel + VBA SCR model
+│   │   ├── VBA_SPEC.md               # VBA modules + Power Query round-trip spec
+│   │   ├── SCR_StandardFormula.xlsx  # no-VBA fixture + hidden parity oracle
+│   │   └── build_excel_data.py       # fixture generator + Python compute oracle
+│   ├── sample_data/                  # scr_inputs.json + scr_assumptions.json
+│   └── src/
+│       ├── 01_inputs_assumptions.py
+│       ├── 02_module_nl_premres.py
+│       ├── 03_module_market_ir.py
+│       ├── 04_module_cat.py
+│       ├── 05_aggregation.py
+│       ├── 06_orchestrator.py        # compute_scr(scenario_id, shocks)
+│       ├── 07_scenarios_mlflow.py    # 30-scenario sweep → MLflow
+│       ├── 08_parity_test.py         # Excel oracle ↔ Databricks
+│       ├── 09_sql_udfs.py            # UC UDFs for the Excel round-trip
+│       ├── 10_dashboard.py           # Lakeview dashboard
+│       └── 99_validate.py
 └── .gitignore
 ```
 

@@ -114,3 +114,120 @@ resources:
         - environment_key: default
           spec:
             client: "5"
+
+    # ─────────────────────────────────────────────────────────────────────
+    # Demo 2A — SCR Standard Formula
+    # ─────────────────────────────────────────────────────────────────────
+
+    # Seeds scr_inputs + scr_assumptions + scr_scenarios. Run after demo 1.
+    scr_setup:
+      name: "Setup — SCR Standard Formula (demo 2A)"
+      parameters:
+        - name: catalog_name
+          default: ${var.catalog_name}
+        - name: schema_name
+          default: ${var.schema_name}
+
+      tasks:
+        - task_key: load_inputs_assumptions
+          notebook_task:
+            notebook_path: ../demo_02a_scr_sf/src/01_inputs_assumptions.py
+            base_parameters:
+              catalog_name: ${var.catalog_name}
+              schema_name:  ${var.schema_name}
+          environment_key: default
+
+      environments:
+        - environment_key: default
+          spec:
+            client: "5"
+
+    # The full demo arc: orchestrator → MLflow sweep → register UDFs → dashboard.
+    # Parity test runs after orchestrator to compare against the Excel fixture.
+    scr_full_run:
+      name: "Run — SCR Standard Formula (demo 2A)"
+      parameters:
+        - name: catalog_name
+          default: ${var.catalog_name}
+        - name: schema_name
+          default: ${var.schema_name}
+        - name: warehouse_id
+          default: ${var.warehouse_id}
+
+      tasks:
+        - task_key: orchestrator
+          notebook_task:
+            notebook_path: ../demo_02a_scr_sf/src/06_orchestrator.py
+            base_parameters:
+              catalog_name: ${var.catalog_name}
+              schema_name:  ${var.schema_name}
+              scenario_id:  "base"
+          environment_key: default
+
+        - task_key: parity_test
+          depends_on:
+            - task_key: orchestrator
+          notebook_task:
+            notebook_path: ../demo_02a_scr_sf/src/08_parity_test.py
+            base_parameters:
+              catalog_name: ${var.catalog_name}
+              schema_name:  ${var.schema_name}
+          environment_key: default
+
+        - task_key: scenario_sweep
+          depends_on:
+            - task_key: orchestrator
+          notebook_task:
+            notebook_path: ../demo_02a_scr_sf/src/07_scenarios_mlflow.py
+            base_parameters:
+              catalog_name: ${var.catalog_name}
+              schema_name:  ${var.schema_name}
+          environment_key: default
+
+        - task_key: register_udfs
+          depends_on:
+            - task_key: orchestrator
+          notebook_task:
+            notebook_path: ../demo_02a_scr_sf/src/09_sql_udfs.py
+            base_parameters:
+              catalog_name: ${var.catalog_name}
+              schema_name:  ${var.schema_name}
+          environment_key: default
+
+        - task_key: build_dashboard
+          depends_on:
+            - task_key: scenario_sweep
+          notebook_task:
+            notebook_path: ../demo_02a_scr_sf/src/10_dashboard.py
+            base_parameters:
+              catalog_name:  ${var.catalog_name}
+              schema_name:   ${var.schema_name}
+              warehouse_id:  ${var.warehouse_id}
+          environment_key: default
+
+      environments:
+        - environment_key: default
+          spec:
+            client: "5"
+
+    scr_validate:
+      name: "Validate — SCR Standard Formula (demo 2A)"
+      parameters:
+        - name: catalog_name
+          default: ${var.catalog_name}
+        - name: schema_name
+          default: ${var.schema_name}
+
+      tasks:
+        - task_key: validate
+          notebook_task:
+            notebook_path: ../demo_02a_scr_sf/src/99_validate.py
+            base_parameters:
+              catalog_name: ${var.catalog_name}
+              schema_name:  ${var.schema_name}
+          environment_key: default
+
+      environments:
+        - environment_key: default
+          spec:
+            client: "5"

@@ -1,0 +1,40 @@
+{
+  "_comment": "Synthetic SCR inputs. One row per scenario_id. Demo 2A loads this via 01_inputs_assumptions.py into the scr_inputs UC table.",
+  "scenarios": [
+    {
+      "scenario_id": "base",
+      "as_of_date": "2025-12-31",
+      "currency": "EUR",
+      "rfr_effective_date": "2025-12-31",
+      "lob_volumes": [
+        {"lob": "Motor",     "v_prem": 120000000.0, "v_res": 180000000.0},
+        {"lob": "Property",  "v_prem":  95000000.0, "v_res":  60000000.0},
+        {"lob": "Liability", "v_prem":  40000000.0, "v_res":  85000000.0},
+        {"lob": "Other",     "v_prem":  25000000.0, "v_res":  15000000.0}
+      ],
+      "earned_premium": 285000000.0,
+      "asset_value": 950000000.0,
+      "asset_modified_duration": 4.5,
+      "liability_cash_flows": [
+        {"year":  1, "amount": 75000000.0},
+        {"year":  2, "amount": 68000000.0},
+        {"year":  3, "amount": 60000000.0},
+        {"year":  4, "amount": 52000000.0},
+        {"year":  5, "amount": 45000000.0},
+        {"year":  6, "amount": 38000000.0},
+        {"year":  7, "amount": 32000000.0},
+        {"year":  8, "amount": 26000000.0},
+        {"year":  9, "amount": 21000000.0},
+        {"year": 10, "amount": 17000000.0},
+        {"year": 11, "amount": 14000000.0},
+        {"year": 12, "amount": 11000000.0},
+        {"year": 13, "amount":  9000000.0},
+        {"year": 14, "amount":  7000000.0},
+        {"year": 15, "amount":  5500000.0},
+        {"year": 20, "amount":  4000000.0},
+        {"year": 25, "amount":  2500000.0},
+        {"year": 30, "amount":  1500000.0}
+      ]
+    }
+  ]
+}
