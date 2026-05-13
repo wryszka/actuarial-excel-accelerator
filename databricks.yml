@@ -1,6 +1,13 @@
 bundle:
   name: actuarial-excel-accelerator
 
+# Land deployed files under a single, easy-to-find folder per user, instead of
+# the default hidden `.bundle/<bundle-name>/<target>/files/` path. Each demo
+# subfolder (demo_01_rfr_etl, demo_02_*, demo_03_*) ends up directly browsable
+# under this root.
+workspace:
+  root_path: /Workspace/Users/${workspace.current_user.userName}/${bundle.name}
+
 # Variables — override at deploy time with `databricks bundle deploy --var key=value`
 # or by editing the `targets:` block below. Defaults work on any serverless workspace
 # with Unity Catalog, once `catalog_name` and `warehouse_id` are pointed at yours.
