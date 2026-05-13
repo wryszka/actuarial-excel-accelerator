@@ -18,7 +18,9 @@ variables:
     description: UC Volume where demo 1 EIOPA monthly RFR files land
     default: rfr_landing
 
-# Single target — `default`. Override workspace host/profile to your own.
+# Default target works on the maintainer's serverless workspace. `dev` points
+# at the dev workspace and overrides catalog + warehouse accordingly. Override
+# either to your own workspace host/profile when forking.
 targets:
   default:
     mode: development
@@ -26,6 +28,15 @@ targets:
     workspace:
       host: https://fevm-lr-serverless-aws-us.cloud.databricks.com
       profile: DEFAULT
+
+  dev:
+    mode: development
+    workspace:
+      host: https://fevm-lr-dev-aws-us.cloud.databricks.com
+      profile: DEV
+    variables:
+      catalog_name: lr_dev_aws_us_catalog
+      warehouse_id: "a3b61648ea4809e3"
 
 sync:
   exclude:
