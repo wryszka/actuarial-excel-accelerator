@@ -50,5 +50,7 @@ sync:
     - "*.bak"
     - "*.xlsm"  # Excel macro files are fixtures only — don't sync to workspace
 
-include:
-  - resources/*.yml
+# No resources/ — this bundle just deploys the demo notebooks to a browsable
+# workspace folder. The jobs + DLT pipeline (which only ran the notebooks) were
+# removed; open the notebooks and run them interactively. Re-add resources/ when
+# the notebooks are validated and ready to orchestrate.
