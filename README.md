@@ -10,10 +10,15 @@ migration recipe.
 |---|---|---|
 | **1. EIOPA Risk-Free Rate ingestion** | Monthly EIOPA term-structure file → VBA reshape → Excel curve history | ✅ Built |
 | **2A. Solvency II SCR Standard Formula** | Multi-tab SCR workbook with hardcoded module aggregation + scenario macro | ✅ Built |
-| **3. Chain-Ladder Reserving** | Run-off triangle workbook with development factors | _Coming soon_ |
+| **3. Experience & Loss-Ratio Monitoring** | Monthly PivotTable MI-pack → **Genie + AI/BI dashboard** over an ~800k-row book | ✅ Built |
+| **4. Chain-Ladder Reserving** | Run-off triangle workbook with development factors | _Coming soon_ |
 
-All three demos share one catalog + one schema. Demo 2 and 3 consume
-the gold table from Demo 1 (`rfr_curves`).
+All demos share one catalog + one schema, with per-demo asset prefixes
+(`rfr_*`, `scr_*`, `exp_*`) so they're easy to tell apart in the workspace.
+Demo 2A consumes Demo 1's `rfr_curves` gold table for discounting; Demo 3
+stands alone. Demo 3 is the one that shows what **AI/BI Genie and
+Dashboards** replace — the giant pivot-table workbook an actuary refreshes
+by hand every month.
 
 ## The take-away: a migration recipe
 
@@ -83,6 +88,23 @@ Demo 2A's round-trip story: open `demo_02a_scr_sf/excel/SCR_StandardFormula.xlsm
 type shocks into the `Round_Trip` tab, hit Refresh. Power Query calls
 the UC `scr_total` UDF; Databricks computes the breakdown; the result
 flows back into the workbook.
+
+## Deploy demo 3 — Experience Monitoring (Genie + AI/BI)
+
+Demo 3 stands alone (no dependency on demos 1–2). The notebooks live
+**flat** in `demo_03_experience_genie/` — deploy, then open the folder in
+the workspace and Run All in order (`00` → `99`):
+
+```bash
+databricks bundle deploy -t dev
+# open /Workspace/Users/<you>/actuarial-excel-accelerator/demo_03_experience_genie/
+```
+
+`01_generate_data.py` fabricates an ~800k-row book and lands it in the
+`exp_landing` Volume; `04_gold.py` builds the Genie-commented tables;
+`06`/`07` create the Genie space and AI/BI dashboard. To build the "before"
+workbook, copy the slice files `01` emits and run the builder locally — see
+[`demo_03_experience_genie/README.md`](demo_03_experience_genie/README.md).
 
 ## Overriding catalog / schema / warehouse
 

@@ -24,6 +24,9 @@ variables:
   rfr_volume_name:
     description: UC Volume where demo 1 EIOPA monthly RFR files land
     default: rfr_landing
+  exp_volume_name:
+    description: UC Volume where demo 3 experience-monitoring CSV extracts land
+    default: exp_landing
 
 # Default target works on the maintainer's serverless workspace. `dev` points
 # at the dev workspace and overrides catalog + warehouse accordingly. Override
