@@ -1,12 +1,21 @@
 bundle:
   name: actuarial-excel-accelerator
 
-# Land deployed files under a single, easy-to-find folder per user, instead of
-# the default hidden `.bundle/<bundle-name>/<target>/files/` path. Each demo
-# subfolder (demo_01_rfr_etl, demo_02_*, demo_03_*) ends up directly browsable
-# under this root.
+# Deploy to a single SHARED folder so the same path opens for everyone in the
+# workspace — not a per-user home. `file_path` is overridden so the demo
+# notebooks land DIRECTLY in the main folder (no `files/` segment); bundle
+# state/artifacts go in a hidden `.bundle/` beside them. Each demo subfolder
+# (demo_01_rfr_etl, demo_02a_scr_sf, demo_03_experience_genie) is then browsable
+# at /Workspace/Shared/actuarial-excel-accelerator/<demo>/ for every user.
 workspace:
-  root_path: /Workspace/Users/${workspace.current_user.userName}/${bundle.name}
+  root_path: /Workspace/Shared/${bundle.name}/.bundle
+  file_path: /Workspace/Shared/${bundle.name}
+
+# Intentionally a shared deployment: let everyone in the workspace open and run
+# the demo notebooks from the same path.
+permissions:
+  - level: CAN_MANAGE
+    group_name: users
 
 # Variables — override at deploy time with `databricks bundle deploy --var key=value`
 # or by editing the `targets:` block below. Defaults work on any serverless workspace
@@ -32,15 +41,16 @@ variables:
 # at the dev workspace and overrides catalog + warehouse accordingly. Override
 # either to your own workspace host/profile when forking.
 targets:
+  # No `mode: development`: this bundle deploys to a fixed SHARED path (above),
+  # which development mode forbids (it requires a per-user root). The bundle is
+  # notebooks-only, so there are no resource names to dev-prefix anyway.
   default:
-    mode: development
     default: true
     workspace:
       host: https://fevm-lr-serverless-aws-us.cloud.databricks.com
       profile: DEFAULT
 
   dev:
-    mode: development
     workspace:
       host: https://fevm-lr-dev-aws-us.cloud.databricks.com
       profile: DEV

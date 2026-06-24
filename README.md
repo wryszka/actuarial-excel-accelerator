@@ -97,8 +97,12 @@ the workspace and Run All in order (`00` → `99`):
 
 ```bash
 databricks bundle deploy -t dev
-# open /Workspace/Users/<you>/actuarial-excel-accelerator/demo_03_experience_genie/
+# open /Workspace/Shared/actuarial-excel-accelerator/demo_03_experience_genie/
 ```
+
+The whole accelerator deploys to a **shared** folder
+(`/Workspace/Shared/actuarial-excel-accelerator/`) so the same path opens for
+everyone in the workspace — no per-user home, no `files/` nesting.
 
 `01_generate_data.py` fabricates an ~800k-row book and lands it in the
 `exp_landing` Volume; `04_gold.py` builds the Genie-commented tables;

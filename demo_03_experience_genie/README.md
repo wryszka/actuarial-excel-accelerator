@@ -77,8 +77,9 @@ Run in order. Each maps to one step of the
 # deploy the notebooks to a browsable workspace folder
 databricks bundle deploy -t dev
 
-# then open the folder in the workspace and Run All, in order:
-#   /Workspace/Users/<you>/actuarial-excel-accelerator/demo_03_experience_genie/
+# then open the SHARED folder in the workspace and Run All, in order
+# (same path for everyone — no per-user home):
+#   /Workspace/Shared/actuarial-excel-accelerator/demo_03_experience_genie/
 ```
 
 Each notebook takes `catalog_name` / `schema_name` widgets (defaults match
