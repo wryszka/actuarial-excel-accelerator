@@ -80,6 +80,14 @@ Widgets on every notebook default to the values in `databricks.yml`
    [Solvency II QRT demo](https://github.com/wryszka/solvency-ii-qrt-demo-pnc)
    for a fully-implemented pipeline of that shape.
 
+## Bring your own data (the on-ramp, shown in every use case)
+
+The inputs file gets into Databricks in one gesture — no pipeline needed:
+Catalog Explorer → your schema → **Create → Table** → drop
+`sf_inputs.csv` (it's in the `sfm_assets` volume) → the UI infers the
+schema → Create. In this use case `01_inputs` does the same thing in
+code, with explicit types and column comments.
+
 ## About this demo
 
 All data is synthetic. The model is a deliberately simplified,

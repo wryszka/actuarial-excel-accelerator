@@ -46,6 +46,14 @@ databricks bundle deploy -t dev
 The full recording script (scene by scene, with the Genie Code prompts)
 is in [`DEMO_GUIDE.md`](DEMO_GUIDE.md).
 
+## Bring your own data (the on-ramp, shown in every use case)
+
+The vendor CSV gets into Databricks in one gesture — no pipeline needed:
+Catalog Explorer → your schema → **Create → Table** → drop the CSV → the
+UI infers the schema → Create. In this use case the same gesture targets
+the volume instead (upload into `incoming/`) because a *recurring* feed
+deserves a pipeline — that's the point of stage 2.
+
 ## About this demo
 
 All data is synthetic — the bordereau resembles a UK motor/property TPA
