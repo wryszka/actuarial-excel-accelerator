@@ -1,0 +1,14 @@
+{
+  "calibration_year": 2025,
+  "description": "2025 parameter set (baseline).",
+  "sigma_premium": 0.1,
+  "sigma_reserve": 0.09,
+  "premium_reserve_corr": 0.5,
+  "ir_shock": 0.011,
+  "cat_factor": 0.12,
+  "op_factor": 0.03,
+  "op_cap_of_bscr": 0.3,
+  "corr_nl_mkt": 0.25,
+  "corr_nl_cat": 0.25,
+  "corr_mkt_cat": 0.25
+}

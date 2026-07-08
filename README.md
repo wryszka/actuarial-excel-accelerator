@@ -11,6 +11,7 @@ a demo for every flavour of the problem — start with demo 0.
 | **0. The VBA nobody understands** | Monthly claims-bordereau macro → Genie Code explains + converts it → file-arrival job runs it unattended | ✅ Built |
 | **1. EIOPA Risk-Free Rate ingestion** | Monthly EIOPA term-structure file → VBA reshape → Excel curve history | ✅ Built |
 | **2A. Solvency II SCR Standard Formula** | Multi-tab SCR workbook with hardcoded module aggregation + scenario macro | ✅ Built |
+| **2B. Spreadsheet model → governed model** | One-entity SF workbook → versioned model in Unity Catalog (`@cal_2025`/`@cal_2026`), group-wide scoring + calibration impact | ✅ Built |
 | **3. Experience & Loss-Ratio Monitoring** | Monthly PivotTable MI-pack → **Genie + AI/BI dashboard** over an ~800k-row book | ✅ Built |
 | **4. Chain-Ladder Reserving** | Run-off triangle workbook with development factors | _Coming soon_ |
 

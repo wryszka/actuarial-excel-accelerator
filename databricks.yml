@@ -39,6 +39,9 @@ variables:
   brd_volume_name:
     description: UC Volume where demo 0 monthly bordereau CSVs land (incoming/ is job-triggered)
     default: brd_landing
+  sfm_volume_name:
+    description: UC Volume holding use case 2 source files (workbook, inputs, calibrations)
+    default: sfm_assets
 
 # Default target works on the maintainer's serverless workspace. `dev` points
 # at the dev workspace and overrides catalog + warehouse accordingly. Override

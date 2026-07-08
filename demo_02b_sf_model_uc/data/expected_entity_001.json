@@ -1,0 +1,29 @@
+{
+  "inputs": {
+    "entity_id": "ENT-001",
+    "entity_name": "Entity 001",
+    "line_of_business": "Motor",
+    "premium_volume": 120.0,
+    "reserve_volume": 340.0,
+    "assets_mv": 780.0,
+    "asset_duration": 4.2,
+    "liabilities_bel": 610.0,
+    "liability_duration": 6.8
+  },
+  "cal_2025": {
+    "scr_nl": 114.1404,
+    "scr_mkt": 9.592,
+    "scr_cat": 14.4,
+    "bscr": 121.5142,
+    "op_risk": 3.6,
+    "scr": 125.1142
+  },
+  "cal_2026": {
+    "scr_nl": 123.396,
+    "scr_mkt": 11.772,
+    "scr_cat": 15.6,
+    "bscr": 133.3197,
+    "op_risk": 3.6,
+    "scr": 136.9197
+  }
+}

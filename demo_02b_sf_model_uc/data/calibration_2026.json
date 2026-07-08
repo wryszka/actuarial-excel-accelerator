@@ -1,0 +1,14 @@
+{
+  "calibration_year": 2026,
+  "description": "2026 update: premium/reserve sigmas up (claims inflation), interest-rate shock up, cat factor up, NL-cat correlation strengthened.",
+  "sigma_premium": 0.113,
+  "sigma_reserve": 0.096,
+  "premium_reserve_corr": 0.5,
+  "ir_shock": 0.0135,
+  "cat_factor": 0.13,
+  "op_factor": 0.03,
+  "op_cap_of_bscr": 0.3,
+  "corr_nl_mkt": 0.25,
+  "corr_nl_cat": 0.35,
+  "corr_mkt_cat": 0.25
+}
