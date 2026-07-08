@@ -40,6 +40,16 @@ Run `00_setup` with widget `reset = yes` (drops the `brd_` tables, clears
 `incoming/`), and delete any `*_STANDARDISED.csv` from Downloads. Job stays;
 pause its trigger again if you unpaused it.
 
+**A5. Trigger health check (do this the day before).**
+Verified behaviour: a **freshly created** job's file-arrival trigger fires
+within ~1 minute of a file landing. But a trigger that has been paused,
+unpaused and edited repeatedly can wedge silently (observed on dev: armed
+but never evaluating). If a test drop doesn't start a run within ~2
+minutes: **delete the job** (Jobs UI or
+`databricks api post /api/2.2/jobs/delete --json '{"job_id": <id>}'`),
+re-run `03_create_job`, wait a minute, then drop the file — it fires
+reliably from a clean create. Drop files only *after* the job exists.
+
 ---
 
 ## Part B — Stage 1: the as-is process, then the migration (~3 min)
