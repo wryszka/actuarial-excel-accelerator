@@ -164,9 +164,12 @@ technical video if wanted.)
 
 ## Video 4 — *Build the next one yourself* (Lakeflow Designer)
 
-Uses demo 3's CSVs as the "real Excel exports" (Designer takes CSV
-natively; .xlsx is not a file source — a deliberate reason to use the
-demo 3 files). Prep item P7 gates this video.
+Assets and the full click-by-click walkthrough live in
+`demo_04_lakeflow_designer/README.md` — that doc is the run sheet
+(sources built by `01_sources_check`, canvas steps with Genie Code
+prompts, parity via `02_parity`, governance close). Designer is GA;
+confirm **New → Data prep** appears on the recording workspace (P7) and
+dry-run the canvas once.
 
 **Reset / pre-flight**
 1. Confirm Lakeflow Designer preview is enabled on the recording
