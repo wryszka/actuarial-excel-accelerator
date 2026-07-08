@@ -7,7 +7,7 @@ throughout.
 
 | # | Video | Scenario | The wow moment |
 |---|---|---|---|
-| 1 | *Who rewrites my VBA?* | EIOPA RFR ETL (demo 1) | Assistant converts a VBA Sub to PySpark live; then the same feed twice — simple notebook, then DLT fully automated |
+| 1 | *The VBA nobody understands* | Claims-bordereau macro (demo 0) | Genie Code explains 12-year-old VBA and reveals it's been silently dropping claims; then the file lands and the pipeline fires itself |
 | 2 | *The model leaves the spreadsheet* | SCR Standard Formula → MLflow (demo 2A) | Type a shock in Excel → Databricks computes SCR → answer lands back in the cell |
 | 3 | *Stop emailing the actuary* | Experience analytics → Genie + AI/BI (demo 3) | Ask Genie "why is Motor 2023 worse?" and watch it drill to the answer over a 766k-row book Excel can't open |
 | 4 | *Build the next one yourself* | Lakeflow Designer on the demo 3 CSVs | An analyst rebuilds the pipeline visually — no code, same governed numbers |
@@ -136,49 +136,29 @@ re-verify before recording (prep item P5).
 
 ---
 
-## Video 1 — *Who rewrites my VBA?* (two builds: simple, then automated)
+## Video 1 — *The VBA nobody understands* (demo 0; stage 1 manual, stage 2 automated)
 
-Assets: `demo_01_rfr_etl/`. Prep items P1–P4 must land first.
+Assets: `demo_00_vba_csv_etl/`. **The complete scene-by-scene script,
+one-time setup, reset procedure, Genie Code prompts and expected numbers
+live in [`demo_00_vba_csv_etl/DEMO_GUIDE.md`](demo_00_vba_csv_etl/DEMO_GUIDE.md)**
+— that guide is the run sheet for this video. Summary:
 
-**Reset / pre-flight**
-1. Volume `rfr_landing` contains only the 2025-09/10/11 sample files —
-   keep `EIOPA_RFR_2025_12.xlsx` OFF the volume (it lands on camera).
-2. Bronze/silver/gold tables reflect those three months.
-3. `RFR_Master.xlsm` (with real VBA, prep P1) open; VBA editor ready.
-4. DLT pipeline (prep P3) exists, green from a prior run, file-arrival
-   trigger armed.
-5. Assistant/Genie Code conversion prompt dry-run (prep P4).
+1. **Stage 1 — the ritual, then the migration (~3 min).** Actuary
+   "downloads" the TPA bordereau CSV → runs the old macro in
+   `Bordereau_ETL.xlsm` → exports the standardised CSV ("goes into the
+   pricing system — not today's topic"). Then the two Genie Code
+   prompts: *what does this code do?* (reveal: it silently drops
+   unparseable claims) → *do the same on Databricks* → upload the CSV to
+   the volume → run the converted notebook → bronze → silver +
+   quarantine → reconciliation to the penny.
+2. **Stage 2 — automate it (~1.5 min).** The Lakeflow job with a
+   file-arrival trigger on `incoming/`. Drop next month's file, the run
+   starts on its own, reconciliation passes again. "Same numbers, zero
+   hands."
 
-**Run sheet**
-1. **Cold open (45s).** `RFR_Master.xlsm`: the `History` tab (curve
-   archive), then ⌥F11 → the four Subs: `ImportFile`, `ReshapeCurve`,
-   `AppendHistory`, `RefreshChart`. "Every month, someone runs this by
-   hand. When they're on holiday, nobody does."
-2. **Nobody rewrites it by hand (60s).** In the workspace, open the
-   assistant / Genie Code. Paste the `ReshapeCurve` Sub (from
-   `VBA_SPEC.md`) with the prompt: *"Convert this Excel VBA to PySpark
-   operating on an EIOPA RFR_spot_no_VA sheet read from a Unity Catalog
-   volume."* Show the generated PySpark next to the hand-validated
-   notebook `02` logic — "the conversion is no longer the project."
-3. **Build (a) — simple, no DLT (60s).** Open `02b_silver_simple` (prep
-   P2). Drop the December file on camera:
-   `databricks fs cp demo_01_rfr_etl/sample_data/EIOPA_RFR_2025_12.xlsx dbfs:/Volumes/<cat>/actuarial_excel_demo/rfr_landing/`
-   (or upload via Catalog Explorer → Volume → Upload, more visual).
-   Run All on the simple notebook: bronze → silver → gold in one pass;
-   show `rfr_curves` now has December. "One notebook already beats the
-   macro: typed, governed, re-runnable."
-4. **Build (b) — DLT, complex + automated (90s).** Same feed, production
-   shape. Open the DLT pipeline graph (`02_silver_dlt.sql`): show the
-   **expectations** (data-quality rules Excel can't express) and the
-   event log. Reset to pre-December state (reset script), drop the
-   December file again — the **file-arrival trigger** starts the
-   pipeline unattended. Watch the graph light up; open the expectations
-   results (rows passed / quarantined). "Version (a) removes the macro.
-   Version (b) removes the human: the file lands, the pipeline runs,
-   quality is checked, history grows — and if a file is malformed it's
-   quarantined instead of silently wrong."
-5. **Close (30s).** Catalog Explorer → `rfr_curves` with four months +
-   lineage from volume → bronze → silver → gold. End card.
+(The EIOPA demo 1 assets stay in the repo as the deeper workshop
+material — DLT with expectations remains available there for a future
+technical video if wanted.)
 
 ---
 
@@ -227,10 +207,9 @@ demo 3 files). Prep item P7 gates this video.
 
 | # | Task | For | Notes |
 |---|---|---|---|
-| P1 | Build `RFR_Master.xlsm` with the real VBA modules from `VBA_SPEC.md` (base workbook via `demo_01_rfr_etl/excel/build_excel_data.py`, paste VBA in Excel, save as .xlsm — stays local, `*.xlsm` is sync-excluded) | V1 | Needed on camera for the VBA editor scene |
-| P2 | Write `demo_01_rfr_etl/src/02b_silver_simple.py` — plain-notebook silver+gold pass (variant a); today silver exists only as DLT SQL | V1 | Mirror `02_silver_dlt.sql` logic |
-| P3 | Restore the DLT pipeline for variant (b): recover `resources/pipelines.yml` from git commit `4d299ff`, re-add `include:`, add file-arrival trigger; re-deploy | V1 | Removal commit was `c4de280` |
-| P4 | Dry-run the VBA→PySpark conversion prompt in the workspace assistant / Genie Code; keep the winning prompt in `demo_01_rfr_etl/excel/VBA_SPEC.md` | V1 | Answers vary — rehearse |
+| P1 | ~~Demo 0 track~~ **DONE** — built and verified (`demo_00_vba_csv_etl/`) | V1 | see DEMO_GUIDE.md |
+| P2 | One-time Excel step: import `ClaimsBordereauETL.bas` into `Bordereau_ETL.xlsx`, save as `.xlsm`, dry-run the macro (expect 44,216 claims for month 11) | V1 | 5 minutes, DEMO_GUIDE Part A1 |
+| P4 | Dry-run the two Genie Code prompts (in `demo_00_vba_csv_etl/excel/VBA_SPEC.md`) — confirm the explanation surfaces the silent row-drops | V1 | Answers vary — rehearse |
 | P5 | Re-verify demo 2A end-to-end on the shared path (tables, MLflow experiment, UDFs, dashboard) | V2 | Built before the /Shared move |
 | P6 | Configure + dry-run the Excel↔warehouse connections on the recording machine: demo 2A Power Query round-trip AND demo 3 live table connection. **Risk:** Excel for Mac's Get Data has limited connectors — if the Databricks/ODBC path fails on Mac, record the Excel connectivity scenes on a Windows VM (Excel 365 + Databricks ODBC driver) | V2, V3 | Do this first — it's the long pole |
 | P7 | Check Lakeflow Designer preview availability on the recording workspace; enroll if needed | V4 | Gates video 4 |

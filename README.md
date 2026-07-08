@@ -1,13 +1,14 @@
 # Actuarial Excel Accelerator
 
 A public Databricks accelerator showing actuaries how to migrate
-Excel + VBA processes to Databricks. Three demos, one repo, one
-migration recipe.
+Excel + VBA processes to Databricks. One repo, one migration recipe,
+a demo for every flavour of the problem — start with demo 0.
 
 ## What's in the box
 
 | Demo | What gets migrated | Status |
 |---|---|---|
+| **0. The VBA nobody understands** | Monthly claims-bordereau macro → Genie Code explains + converts it → file-arrival job runs it unattended | ✅ Built |
 | **1. EIOPA Risk-Free Rate ingestion** | Monthly EIOPA term-structure file → VBA reshape → Excel curve history | ✅ Built |
 | **2A. Solvency II SCR Standard Formula** | Multi-tab SCR workbook with hardcoded module aggregation + scenario macro | ✅ Built |
 | **3. Experience & Loss-Ratio Monitoring** | Monthly PivotTable MI-pack → **Genie + AI/BI dashboard** over an ~800k-row book | ✅ Built |

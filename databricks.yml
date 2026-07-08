@@ -36,6 +36,9 @@ variables:
   exp_volume_name:
     description: UC Volume where demo 3 experience-monitoring CSV extracts land
     default: exp_landing
+  brd_volume_name:
+    description: UC Volume where demo 0 monthly bordereau CSVs land (incoming/ is job-triggered)
+    default: brd_landing
 
 # Default target works on the maintainer's serverless workspace. `dev` points
 # at the dev workspace and overrides catalog + warehouse accordingly. Override
