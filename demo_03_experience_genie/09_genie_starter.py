@@ -20,7 +20,7 @@
 
 dbutils.widgets.text("catalog_name", "lr_serverless_aws_us_catalog")
 dbutils.widgets.text("schema_name", "actuarial_excel_demo")
-dbutils.widgets.dropdown("mode", "create_starter", ["create_starter", "extend"])
+dbutils.widgets.dropdown("mode", "create_starter", ["create_starter", "extend", "reset_starter"])
 
 catalog = dbutils.widgets.get("catalog_name")
 schema = dbutils.widgets.get("schema_name")
@@ -71,14 +71,23 @@ nb_path = (dbutils.notebook.entry_point.getDbutils().notebook()
            .getContext().notebookPath().get())
 PARENT = "/Workspace" + os.path.dirname(nb_path)
 
-tables = STARTER_TABLES if mode == "create_starter" else EXTENDED_TABLES
+tables = EXTENDED_TABLES if mode == "extend" else STARTER_TABLES
 serialized = json.dumps(
     {"version": 2, "data_sources": {"tables": [{"identifier": t} for t in tables]}})
 
 existing = [s for s in w.api_client.do("GET", "/api/2.0/genie/spaces").get("spaces", [])
             if s.get("title") == TITLE]
 
-if mode == "create_starter" and existing:
+if mode == "reset_starter" and not existing:
+    mode = "create_starter"  # nothing to reset — create fresh below
+
+if mode == "reset_starter":
+    # bring the space back to its act-1, single-table state
+    space_id = existing[0]["space_id"]
+    w.api_client.do("PATCH", f"/api/2.0/genie/spaces/{space_id}",
+                    body={"serialized_space": serialized})
+    print(f"✓ space {space_id} reset to the single-table starter state")
+elif mode == "create_starter" and existing:
     space_id = existing[0]["space_id"]
     print(f"Starter space already exists: {space_id} — skipping create.")
 elif mode == "create_starter":
@@ -110,7 +119,7 @@ else:
 
 host = w.config.host.rstrip("/")
 print(f"\nOpen: {host}/genie/rooms/{space_id}")
-qs = STARTER_QUESTIONS if mode == "create_starter" else EXTENDED_QUESTIONS
+qs = EXTENDED_QUESTIONS if mode == "extend" else STARTER_QUESTIONS
 print("\nQuestions to ask at this stage:")
 for q in qs:
     print(f"  - {q}")

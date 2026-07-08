@@ -1,0 +1,15 @@
+command: ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+
+env:
+  - name: CATALOG_NAME
+    value: "lr_dev_aws_us_catalog"
+  - name: SCHEMA_NAME
+    value: "actuarial_excel_demo"
+  - name: EXCEL_FOLDER_PATH
+    value: "/Workspace/Shared/actuarial-excel-accelerator"
+  # Walkthrough doc + per-scenario tab ids (defaults baked into main.py too)
+  # - name: DOC_URL
+  #   value: "https://docs.google.com/document/d/<id>/edit"
+  # YouTube links — paste when the recordings are published
+  # - name: YT_UC1
+  #   value: ""

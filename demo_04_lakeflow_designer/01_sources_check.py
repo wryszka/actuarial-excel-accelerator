@@ -21,6 +21,7 @@
 dbutils.widgets.text("catalog_name", "lr_serverless_aws_us_catalog")
 dbutils.widgets.text("schema_name", "actuarial_excel_demo")
 dbutils.widgets.text("exp_volume_name", "exp_landing")
+dbutils.widgets.dropdown("drop_output", "no", ["no", "yes"])
 
 catalog = dbutils.widgets.get("catalog_name")
 schema = dbutils.widgets.get("schema_name")
@@ -82,6 +83,12 @@ has_extract = "claims_extract_motor_ay2024.csv" in files
 print(("✓" if has_extract else "✗ MISSING:"), f"{vol_path}/claims_extract_motor_ay2024.csv "
       "(optional drag-onto-canvas beat — run demo 3's 08_claims_listing if absent)")
 assert ok, "Run the Use Case 3 notebooks first (demo_03: 00–04, then 08)."
+
+# COMMAND ----------
+
+if dbutils.widgets.get("drop_output") == "yes":
+    spark.sql(f"DROP TABLE IF EXISTS {fqn}.exp_designer_experience")
+    print("✓ dropped exp_designer_experience — canvas output back to pending")
 
 # COMMAND ----------
 
