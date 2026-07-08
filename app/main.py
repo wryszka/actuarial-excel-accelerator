@@ -1,13 +1,16 @@
 """Excel Accelerator — front door.
 
-One page, four scenarios: what each demo is, links to the notebooks, the
-walkthrough doc tab, the recording, and the live assets — plus a health
-chip and a Reset button per scenario (backed by the "Excel Accelerator —
-Reset" job created by shared/create_reset_job.py).
+Light, Bricksurance-branded single-file app matching the Actuarial
+Workbench's visual language: a landing page with four tiles, a side
+panel with the four demos, and a page per demo with the recording,
+the assets and a Reset button.
 
-Everything is env-var driven with working defaults so the app deploys on
-any workspace unchanged. Synthetic data throughout; see the repo README.
+Resets run via the job "Excel Accelerator — Reset" (created by
+shared/create_reset_job.py); the app's service principal only holds
+CAN_MANAGE_RUN on it. Env-var driven with working defaults so the app
+deploys on any workspace unchanged. Synthetic data throughout.
 """
+import json
 import os
 import threading
 import time
@@ -22,6 +25,7 @@ FOLDER = os.getenv("EXCEL_FOLDER_PATH", "/Workspace/Shared/actuarial-excel-accel
 DOC_URL = os.getenv("DOC_URL",
                     "https://docs.google.com/document/d/1BiHEgVHeKHMWFzE5JFgZfWaHBvO3F8jgfSPfVgaEags/edit")
 RESET_JOB_NAME = os.getenv("RESET_JOB_NAME", "Excel Accelerator — Reset")
+ENTITY = os.getenv("ENTITY_NAME", "Bricksurance SE")
 REPO_URL = "https://github.com/wryszka/actuarial-excel-accelerator"
 
 FQ = f"{CATALOG}.{SCHEMA}"
@@ -29,10 +33,12 @@ FQ = f"{CATALOG}.{SCHEMA}"
 SCENARIOS = [
     {
         "id": "uc1",
-        "title": "1 · The VBA nobody understands",
+        "n": 1,
+        "title": "The VBA nobody understands",
         "strap": "A legacy macro cleans the monthly claims bordereau — nobody remembers how.",
-        "wow": "Genie Code explains the VBA (it's been silently dropping claims for years), "
-               "converts it, and a file-arrival job runs it unattended.",
+        "wow": "Genie Code explains the VBA — revealing it has been silently dropping claims "
+               "for years — then converts it. A file-arrival job runs the pipeline unattended, "
+               "and reconciliation ties out to the penny.",
         "folder": f"{FOLDER}/demo_00_vba_csv_etl",
         "doc_tab": os.getenv("DOC_TAB_UC1", "t.bzv4poipaxlz"),
         "youtube": os.getenv("YT_UC1", ""),
@@ -41,10 +47,12 @@ SCENARIOS = [
     },
     {
         "id": "uc2",
-        "title": "2 · From spreadsheet model to governed model",
+        "n": 2,
+        "title": "From spreadsheet model to governed model",
         "strap": "A Standard-Formula capital model in a workbook — one file per entity.",
         "wow": "The model becomes a versioned asset in Unity Catalog: a model version IS a "
-               "calibration. 2026 vs 2025 on identical inputs = the capital impact in seconds.",
+               "calibration. Running 2026 vs 2025 on identical inputs shows the group capital "
+               "impact in seconds — by module, by entity.",
         "folder": f"{FOLDER}/demo_02b_sf_model_uc",
         "doc_tab": os.getenv("DOC_TAB_UC2", "t.qow31u7gomkp"),
         "youtube": os.getenv("YT_UC2", ""),
@@ -54,10 +62,12 @@ SCENARIOS = [
     },
     {
         "id": "uc3",
-        "title": "3 · Ad-hoc analytics: pivots → Genie & AI/BI",
+        "n": 3,
+        "title": "Ad-hoc analytics: pivots → Genie & AI/BI",
         "strap": "The claims listing lands in Excel and the pivot ritual begins.",
-        "wow": "The same table, governed: Genie answers in plain English, the dashboard is "
-               "published live — then more tables for what Excel can't hold.",
+        "wow": "The same table, governed: Genie answers the pivot questions in plain English, "
+               "the dashboard is published live to everyone — then more tables join for the "
+               "analysis Excel can't hold.",
         "folder": f"{FOLDER}/demo_03_experience_genie",
         "doc_tab": os.getenv("DOC_TAB_UC3", "t.8r228vdd3l38"),
         "youtube": os.getenv("YT_UC3", ""),
@@ -69,10 +79,12 @@ SCENARIOS = [
     },
     {
         "id": "uc4",
-        "title": "4 · The monthly blend — Lakeflow Designer",
+        "n": 4,
+        "title": "The monthly blend — Lakeflow Designer",
         "strap": "The join–clean–aggregate canvas living in a desktop ETL tool today.",
         "wow": "The same canvas, no-code, on the platform — backed by real code, lineage and a "
-               "schedule. Provably equal to the coded pipeline.",
+               "schedule. Provably equal to the coded pipeline, so the analyst's path and the "
+               "engineers' path meet on one governed platform.",
         "folder": f"{FOLDER}/demo_04_lakeflow_designer",
         "doc_tab": os.getenv("DOC_TAB_UC4", "t.xx63b7kbyr11"),
         "youtube": os.getenv("YT_UC4", ""),
@@ -106,13 +118,12 @@ def _table_exists(name: str) -> bool:
 
 def _compute_status():
     host = w().config.host.rstrip("/")
-    genie = {}
+    genie, dashboards = {}, {}
     try:
         for s in w().api_client.do("GET", "/api/2.0/genie/spaces").get("spaces", []):
             genie[s.get("title")] = s.get("space_id")
     except Exception:
         pass
-    dashboards = {}
     try:
         for d in w().lakeview.list():
             dashboards[d.display_name] = d.dashboard_id
@@ -131,18 +142,19 @@ def _compute_status():
                 ok, detail = False, (detail + " · model missing").lstrip(" ·")
         links = []
         if sc.get("genie_title") and genie.get(sc["genie_title"]):
-            links.append({"label": "Genie space",
+            links.append({"label": "Genie space", "kind": "genie",
                           "href": f"{host}/genie/rooms/{genie[sc['genie_title']]}"})
         for dn in sc.get("dashboards", []):
             if dashboards.get(dn):
-                links.append({"label": dn.split("—")[-1].strip(),
+                links.append({"label": dn.split("—")[-1].strip() + " (dashboard)",
+                              "kind": "dashboard",
                               "href": f"{host}/dashboardsv3/{dashboards[dn]}/published"})
         if sc.get("model"):
-            links.append({"label": "Registered model",
+            links.append({"label": "Registered model — sfm_scr_model", "kind": "model",
                           "href": f"{host}/explore/data/models/{CATALOG}/{SCHEMA}/sfm_scr_model"})
         pend = [t for t in sc.get("optional_tables", []) if not _table_exists(t)]
         out.append({"id": sc["id"], "ok": ok, "detail": detail, "live": links,
-                    "pending": (f"canvas output pending ({', '.join(pend)})" if pend else "")})
+                    "pending": ("canvas output pending" if pend else "")})
     return {"scenarios": out, "host": host}
 
 
@@ -178,113 +190,266 @@ def reset_status():
     if not job_id:
         return {"active": []}
     host = w().config.host.rstrip("/")
-    active = []
-    for r in w().jobs.list_runs(job_id=job_id, active_only=True):
-        active.append({"run_id": r.run_id,
-                       "url": f"{host}/jobs/{job_id}/runs/{r.run_id}"})
+    active = [{"run_id": r.run_id, "url": f"{host}/jobs/{job_id}/runs/{r.run_id}"}
+              for r in w().jobs.list_runs(job_id=job_id, active_only=True)]
     return {"active": active, "job_url": f"{host}/jobs/{job_id}"}
 
 
-def _card(sc) -> str:
-    yt = (f'<a class="lnk" href="{sc["youtube"]}" target="_blank">▶ Watch the recording</a>'
-          if sc["youtube"] else '<span class="lnk soon">▶ Recording — coming soon</span>')
-    return f"""
-    <div class="card" id="{sc['id']}">
-      <div class="chip" id="chip-{sc['id']}">checking…</div>
-      <h2>{sc['title']}</h2>
-      <p class="strap">{sc['strap']}</p>
-      <p class="wow">{sc['wow']}</p>
-      <div class="links">
-        <a class="lnk" href="HOST#workspace{sc['folder']}" target="_blank">📓 Open the notebooks</a>
-        <a class="lnk" href="{DOC_URL}?tab={sc['doc_tab']}" target="_blank">📄 Walkthrough</a>
-        {yt}
-        <span class="live" id="live-{sc['id']}"></span>
-      </div>
-      <div class="resetrow">
-        <button class="reset" onclick="doReset('{sc['id']}', this)">Reset scenario</button>
-        <span class="note">{sc['reset_note']}</span>
-      </div>
-    </div>"""
+CLIENT_SCENARIOS = [
+    {k: sc[k] for k in ("id", "n", "title", "strap", "wow", "folder",
+                        "doc_tab", "youtube", "reset_note")}
+    for sc in SCENARIOS
+]
 
 
 @app.get("/", response_class=HTMLResponse)
 def index():
-    cards = "".join(_card(sc) for sc in SCENARIOS)
-    return f"""<!DOCTYPE html><html><head><meta charset="utf-8">
-<title>Excel Accelerator</title>
+    data = json.dumps({"scenarios": CLIENT_SCENARIOS, "docUrl": DOC_URL,
+                       "repoUrl": REPO_URL, "entity": ENTITY})
+    return HTML_PAGE.replace("__DATA__", data)
+
+
+HTML_PAGE = """<!DOCTYPE html><html><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Excel Accelerator — Bricksurance</title>
 <style>
- body{{font-family:-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;margin:0;
-      background:#0e1a20;color:#e8eef1}}
- .wrap{{max-width:1080px;margin:0 auto;padding:32px 20px 60px}}
- h1{{font-size:26px;margin:0 0 4px}} .sub{{color:#9fb3bd;margin:0 0 26px}}
- .grid{{display:grid;grid-template-columns:repeat(auto-fit,minmax(440px,1fr));gap:18px}}
- .card{{background:#15242c;border:1px solid #24404d;border-radius:12px;padding:20px;position:relative}}
- .card h2{{font-size:17px;margin:2px 0 8px}} .strap{{color:#9fb3bd;font-size:13px;margin:0 0 8px}}
- .wow{{font-size:13.5px;line-height:1.45;margin:0 0 14px}}
- .chip{{position:absolute;top:16px;right:16px;font-size:11px;padding:3px 9px;border-radius:20px;
-       background:#24404d;color:#9fb3bd}}
- .chip.ok{{background:#123c2a;color:#5fd39a}} .chip.bad{{background:#43222a;color:#ff8f9e}}
- .chip.busy{{background:#3d3417;color:#ffd479}}
- .links{{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}}
- .lnk{{font-size:12.5px;color:#7fd0ff;text-decoration:none;background:#1a2f3a;padding:5px 10px;
-      border-radius:7px;border:1px solid #24404d}}
- .lnk:hover{{border-color:#7fd0ff}} .lnk.soon{{color:#6b8593;cursor:default}}
- .resetrow{{display:flex;align-items:center;gap:10px;border-top:1px solid #22333c;padding-top:12px}}
- .reset{{background:#43222a;color:#ff8f9e;border:1px solid #6b3540;border-radius:7px;
-        padding:6px 12px;font-size:12.5px;cursor:pointer}}
- .reset:hover{{background:#552a34}} .reset:disabled{{opacity:.5;cursor:wait}}
- .note{{font-size:11.5px;color:#6b8593}}
- .foot{{margin-top:28px;font-size:12px;color:#6b8593}}
- .foot a{{color:#7fd0ff}}
- .topline{{display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:10px}}
- .resetall{{font-size:12.5px}}
-</style></head><body><div class="wrap">
- <div class="topline">
-   <div><h1>Excel Accelerator</h1>
-   <p class="sub">Four migrations off the spreadsheet estate — run them, break them, reset them.</p></div>
-   <button class="reset resetall" onclick="doReset('all', this)">Reset everything</button>
- </div>
- <div class="grid">{cards}</div>
- <div class="foot">
-   <span id="runbar"></span>
-   <a href="{DOC_URL}" target="_blank">Full demo guide</a> ·
-   <a href="{REPO_URL}" target="_blank">GitHub</a> ·
-   About this demo: all data is synthetic; no customer data is used.
- </div>
+:root{
+  --blue-50:#eff6ff; --blue-100:#dbeafe; --blue-200:#bfdbfe; --blue-300:#93c5fd;
+  --blue-700:#1d4ed8; --blue-800:#1e40af; --blue-900:#1e3a8a;
+  --gray-50:#f8fafc; --gray-100:#f1f5f9; --gray-200:#e2e8f0; --gray-400:#94a3b8;
+  --gray-500:#64748b; --gray-600:#475569; --gray-900:#0f172a;
+  --em-100:#d1fae5; --em-300:#a7f3d0; --em-800:#065f46;
+  --am-100:#fef3c7; --am-300:#fcd34d; --am-800:#92400e;
+  --red-100:#fee2e2; --red-300:#fecaca; --red-700:#b91c1c;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;
+     background:var(--gray-50);color:var(--gray-900);font-size:14px}
+a{color:var(--blue-700)}
+.layout{display:flex;min-height:100vh}
+/* ── side panel ── */
+.side{width:250px;background:#fff;border-right:1px solid var(--gray-200);
+      padding:20px 14px;display:flex;flex-direction:column;gap:2px;flex-shrink:0}
+.brand{display:flex;gap:10px;align-items:center;padding:4px 8px 16px}
+.brand .mark{width:36px;height:36px;border-radius:9px;background:var(--blue-700);
+      color:#fff;font-weight:800;font-size:18px;display:flex;align-items:center;
+      justify-content:center}
+.brand .t1{font-weight:800;font-size:14px;line-height:1.15}
+.brand .t2{font-size:10px;color:var(--gray-500);text-transform:uppercase;
+      letter-spacing:.08em;font-weight:700;margin-top:2px}
+.navlbl{font-size:10px;text-transform:uppercase;letter-spacing:.1em;font-weight:800;
+      color:var(--gray-400);padding:10px 8px 4px}
+.nav{display:block;padding:9px 10px;border-radius:9px;color:var(--gray-600);
+     text-decoration:none;font-weight:600;font-size:13px;line-height:1.3}
+.nav .no{color:var(--blue-700);font-weight:800;margin-right:7px}
+.nav:hover{background:var(--gray-100)}
+.nav.active{background:var(--blue-50);color:var(--blue-900)}
+.side .spacer{flex:1}
+.side .foot{border-top:1px solid var(--gray-200);padding-top:12px;display:flex;
+     flex-direction:column;gap:6px}
+.side .foot a{font-size:12px;text-decoration:none;color:var(--gray-500);padding:2px 8px}
+.side .foot a:hover{color:var(--blue-700)}
+.resetall{margin:2px 8px 0;font-size:12px;background:#fff;border:1px solid var(--red-300);
+     color:var(--red-700);border-radius:8px;padding:7px 10px;cursor:pointer;font-weight:600}
+.resetall:hover{background:var(--red-100)}
+/* ── main ── */
+.main{flex:1;padding:34px 40px 60px;max-width:1000px}
+.eyebrow{font-size:11px;text-transform:uppercase;letter-spacing:.14em;
+     color:var(--blue-700);font-weight:800}
+h1{font-size:27px;letter-spacing:-.01em;margin:6px 0 6px}
+.sub{color:var(--gray-500);font-size:15px;margin:0 0 28px;max-width:640px;line-height:1.5}
+/* landing tiles */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(380px,1fr));gap:16px}
+.tile{background:#fff;border:2px solid var(--blue-200);border-radius:14px;padding:18px;
+     text-decoration:none;color:inherit;display:flex;flex-direction:column;
+     transition:box-shadow .15s,border-color .15s}
+.tile:hover{border-color:var(--blue-300);box-shadow:0 8px 24px -8px var(--blue-100)}
+.tile .top{display:flex;gap:10px;align-items:flex-start;margin-bottom:8px}
+.tile .ic{width:38px;height:38px;border-radius:10px;background:var(--blue-100);
+     color:var(--blue-700);font-weight:800;font-size:16px;display:flex;
+     align-items:center;justify-content:center;flex-shrink:0}
+.tile h3{margin:0;font-size:15.5px;color:var(--blue-900);line-height:1.25}
+.tile p{margin:0;color:var(--gray-600);font-size:12.5px;line-height:1.5;flex:1}
+.tile .open{margin-top:12px;font-size:12.5px;font-weight:800;color:var(--blue-700)}
+.chip{font-size:9.5px;text-transform:uppercase;letter-spacing:.08em;font-weight:800;
+     padding:2px 7px;border-radius:6px;white-space:nowrap}
+.chip.ok{background:var(--em-100);color:var(--em-800);border:1px solid var(--em-300)}
+.chip.bad{background:var(--red-100);color:var(--red-700);border:1px solid var(--red-300)}
+.chip.busy{background:var(--am-100);color:var(--am-800);border:1px solid var(--am-300)}
+/* detail page */
+.card{background:#fff;border:1px solid var(--gray-200);border-radius:14px;
+     padding:20px;margin-bottom:16px}
+.card h2{font-size:12px;text-transform:uppercase;letter-spacing:.1em;
+     color:var(--gray-400);margin:0 0 12px;font-weight:800}
+.wow{background:var(--blue-50);border:1px solid var(--blue-100);border-radius:12px;
+     padding:14px 16px;color:var(--blue-900);font-size:13.5px;line-height:1.55;
+     margin:0 0 18px}
+.video{aspect-ratio:16/9;border-radius:10px;overflow:hidden;background:var(--gray-100);
+     display:flex;align-items:center;justify-content:center;color:var(--gray-400);
+     font-weight:600;border:1px dashed var(--gray-200)}
+.video iframe{width:100%;height:100%;border:0}
+.assets{display:flex;flex-direction:column;gap:8px}
+.asset{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid
+     var(--gray-200);border-radius:10px;text-decoration:none;color:inherit}
+.asset:hover{border-color:var(--blue-300);background:var(--blue-50)}
+.asset .k{width:28px;height:28px;border-radius:8px;background:var(--gray-100);
+     display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+.asset .l{font-weight:700;font-size:13px;color:var(--gray-900)}
+.asset .s{font-size:11.5px;color:var(--gray-500)}
+.resetrow{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.resetbtn{background:#fff;border:1px solid var(--red-300);color:var(--red-700);
+     border-radius:9px;padding:9px 16px;font-size:13px;font-weight:700;cursor:pointer}
+.resetbtn:hover{background:var(--red-100)} .resetbtn:disabled{opacity:.5;cursor:wait}
+.note{font-size:12px;color:var(--gray-500)}
+.runbar{font-size:12.5px;color:var(--am-800);background:var(--am-100);
+     border:1px solid var(--am-300);border-radius:8px;padding:6px 10px;display:none}
+.about{margin-top:26px;font-size:11.5px;color:var(--gray-400);line-height:1.5;
+     border-top:1px solid var(--gray-200);padding-top:14px;max-width:760px}
+.back{font-size:12.5px;text-decoration:none;font-weight:700;display:inline-block;
+     margin-bottom:10px}
+@media (max-width:760px){.layout{flex-direction:column}.side{width:100%;
+     flex-direction:row;flex-wrap:wrap;align-items:center}.side .spacer{display:none}
+     .main{padding:22px 18px}}
+</style></head><body>
+<div class="layout">
+  <nav class="side">
+    <div class="brand"><div class="mark">B</div>
+      <div><div class="t1" id="entity">Bricksurance SE</div>
+      <div class="t2">Excel Accelerator</div></div></div>
+    <a class="nav" href="#/" data-r="/"><span class="no">⌂</span>Overview</a>
+    <div class="navlbl">The four demos</div>
+    <div id="sidenav"></div>
+    <div class="spacer"></div>
+    <div class="runbar" id="runbar"></div>
+    <button class="resetall" onclick="doReset('all', this)">↺ Reset everything</button>
+    <div class="foot">
+      <a href="#" id="doclink" target="_blank">📄 Full demo guide</a>
+      <a href="#" id="repolink" target="_blank">⌥ GitHub repository</a>
+    </div>
+  </nav>
+  <main class="main" id="main"></main>
 </div>
 <script>
-async function load(refresh) {{
-  const r = await fetch('/api/status' + (refresh ? '?refresh=true' : ''));
-  const s = await r.json();
-  document.querySelectorAll('a.lnk').forEach(a => {{
-    if (a.href.includes('HOST#workspace')) a.href = a.href.replace('HOST#workspace', s.host + '/#workspace');
-  }});
-  for (const sc of s.scenarios) {{
-    const chip = document.getElementById('chip-' + sc.id);
-    chip.textContent = sc.ok ? (sc.pending ? 'ready · ' + sc.pending : 'ready') : sc.detail;
-    chip.className = 'chip ' + (sc.ok ? 'ok' : 'bad');
-    const live = document.getElementById('live-' + sc.id);
-    live.innerHTML = sc.live.map(l =>
-      `<a class="lnk" target="_blank" href="${{l.href}}">⚡ ${{l.label}}</a>`).join(' ');
-  }}
-}}
-async function pollRuns() {{
-  const r = await fetch('/api/reset_status'); const s = await r.json();
-  const bar = document.getElementById('runbar');
-  if (s.active && s.active.length) {{
-    bar.innerHTML = `⏳ reset running — <a target="_blank" href="${{s.active[0].url}}">watch</a> · `;
-    document.querySelectorAll('.chip').forEach(c => {{ c.textContent = 'resetting…'; c.className='chip busy'; }});
-    setTimeout(pollRuns, 15000);
-  }} else {{ bar.innerHTML = ''; load(true); }}
-}}
-async function doReset(sc, btn) {{
-  if (!confirm('Reset ' + sc + ' back to its original state?')) return;
+const DATA = __DATA__;
+let STATUS = null;
+
+const $  = (s) => document.querySelector(s);
+const esc = (t) => t.replace(/&/g,'&amp;').replace(/</g,'&lt;');
+
+function ytEmbed(u){
+  const m = u.match(/(?:youtu\\.be\\/|v=)([\\w-]{6,})/);
+  return m ? `https://www.youtube.com/embed/${m[1]}` : u;
+}
+function chipFor(id){
+  if (!STATUS) return '<span class="chip busy">checking…</span>';
+  const s = STATUS.scenarios.find(x => x.id === id);
+  if (!s) return '';
+  if (s.busy) return '<span class="chip busy">resetting…</span>';
+  if (!s.ok) return `<span class="chip bad">${esc(s.detail)}</span>`;
+  return `<span class="chip ok">${s.pending ? 'ready · canvas pending' : 'ready'}</span>`;
+}
+function nav(){
+  $('#sidenav').innerHTML = DATA.scenarios.map(sc =>
+    `<a class="nav" href="#/${sc.id}" data-r="/${sc.id}">
+       <span class="no">${sc.n}</span>${esc(sc.title)}</a>`).join('');
+}
+function landing(){
+  return `
+    <div class="eyebrow">Actuarial Excel Accelerator</div>
+    <h1>Escaping the spreadsheet estate</h1>
+    <p class="sub">Four migrations off the Excel estate an insurance company actually
+      runs on — each one a complete, self-runnable demo with a recording, the assets
+      and a reset button. Pick a scenario.</p>
+    <div class="grid">` +
+    DATA.scenarios.map(sc => `
+      <a class="tile" href="#/${sc.id}">
+        <div class="top"><div class="ic">${sc.n}</div>
+          <h3>${esc(sc.title)}</h3>
+          <span style="margin-left:auto" id="chip-${sc.id}">${chipFor(sc.id)}</span></div>
+        <p>${esc(sc.strap)}</p>
+        <div class="open">Open →</div>
+      </a>`).join('') + `
+    </div>
+    <div class="about"><b>About this demo.</b> A Databricks Field Engineering
+      demonstration for ${esc(DATA.entity)} — a fictional composite insurer. All data
+      is synthetic; no customer data is used.</div>`;
+}
+function detail(sc){
+  const video = sc.youtube
+    ? `<div class="video"><iframe src="${ytEmbed(sc.youtube)}" allowfullscreen
+         title="recording"></iframe></div>`
+    : `<div class="video">▶ Recording coming soon</div>`;
+  const live = (STATUS?.scenarios.find(x => x.id === sc.id)?.live || []).map(l => `
+      <a class="asset" href="${l.href}" target="_blank">
+        <div class="k">⚡</div><div><div class="l">${esc(l.label)}</div>
+        <div class="s">Live in this workspace</div></div></a>`).join('');
+  const host = STATUS ? STATUS.host : '';
+  return `
+    <a class="back" href="#/">← All scenarios</a>
+    <div class="eyebrow">Use case ${sc.n}</div>
+    <h1>${esc(sc.title)} <span id="chip-${sc.id}" style="vertical-align:4px">${chipFor(sc.id)}</span></h1>
+    <p class="sub">${esc(sc.strap)}</p>
+    <p class="wow">${esc(sc.wow)}</p>
+    <div class="card"><h2>Recording</h2>${video}</div>
+    <div class="card"><h2>Assets</h2><div class="assets">
+      <a class="asset" href="${host}/#workspace${sc.folder}" target="_blank">
+        <div class="k">📓</div><div><div class="l">Open the notebooks</div>
+        <div class="s">${esc(sc.folder)}</div></div></a>
+      <a class="asset" href="${DATA.docUrl}?tab=${sc.doc_tab}" target="_blank">
+        <div class="k">📄</div><div><div class="l">Step-by-step walkthrough</div>
+        <div class="s">Demo guide — use case ${sc.n} tab</div></div></a>
+      ${live}
+    </div></div>
+    <div class="card"><h2>Reset</h2>
+      <div class="resetrow">
+        <button class="resetbtn" onclick="doReset('${sc.id}', this)">↺ Reset this scenario</button>
+        <span class="note">${esc(sc.reset_note)} Brings the demo back to its original
+          state if anything was changed or broken.</span>
+      </div></div>`;
+}
+function render(){
+  const r = location.hash.replace(/^#/, '') || '/';
+  document.querySelectorAll('.nav').forEach(a =>
+    a.classList.toggle('active', a.dataset.r === r));
+  const sc = DATA.scenarios.find(x => '/' + x.id === r);
+  $('#main').innerHTML = sc ? detail(sc) : landing();
+}
+async function loadStatus(refresh){
+  try{
+    const res = await fetch('/api/status' + (refresh ? '?refresh=true' : ''));
+    STATUS = await res.json();
+  }catch(e){ STATUS = null; }
+  render();
+}
+async function pollRuns(){
+  try{
+    const res = await fetch('/api/reset_status'); const s = await res.json();
+    const bar = $('#runbar');
+    if (s.active && s.active.length){
+      bar.style.display = 'block';
+      bar.innerHTML = `⏳ reset running — <a target="_blank" href="${s.active[0].url}">watch the job</a>`;
+      if (STATUS) STATUS.scenarios.forEach(x => x.busy = true);
+      render();
+      setTimeout(pollRuns, 15000);
+    } else {
+      bar.style.display = 'none';
+      if (STATUS && STATUS.scenarios.some(x => x.busy)) loadStatus(true);
+    }
+  }catch(e){}
+}
+async function doReset(sc, btn){
+  if (!confirm('Reset ' + (sc === 'all' ? 'ALL scenarios' : sc) +
+               ' back to the original state?')) return;
   btn.disabled = true;
-  try {{
-    const r = await fetch('/api/reset/' + sc, {{method: 'POST'}});
+  try{
+    const r = await fetch('/api/reset/' + sc, {method: 'POST'});
     if (!r.ok) alert((await r.json()).detail || 'reset failed');
     else pollRuns();
-  }} finally {{ btn.disabled = false; }}
-}}
-load(false); pollRuns();
+  } finally { btn.disabled = false; }
+}
+$('#entity').textContent = DATA.entity;
+$('#doclink').href = DATA.docUrl;
+$('#repolink').href = DATA.repoUrl;
+window.addEventListener('hashchange', render);
+nav(); render(); loadStatus(false); pollRuns();
 </script></body></html>"""
