@@ -42,6 +42,9 @@ variables:
   sfm_volume_name:
     description: UC Volume holding use case 2 source files (workbook, inputs, calibrations)
     default: sfm_assets
+  dsg_volume_name:
+    description: UC Volume holding use case 4 (Lakeflow Designer) source files
+    default: dsg_landing
 
 # Default target works on the maintainer's serverless workspace. `dev` points
 # at the dev workspace and overrides catalog + warehouse accordingly. Override

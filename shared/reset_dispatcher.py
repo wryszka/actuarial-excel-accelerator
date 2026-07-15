@@ -64,8 +64,11 @@ def reset_uc3():
 
 
 def reset_uc4():
-    run("../demo_04_lakeflow_designer/01_sources_check",
-        {"exp_volume_name": "exp_landing", "drop_output": "yes"})
+    # standalone: regenerate its own sources + benchmark, drop the canvas output
+    run("../demo_04_lakeflow_designer/00_setup",
+        {"dsg_volume_name": "dsg_landing", "reset": "yes"})
+    run("../demo_04_lakeflow_designer/01_generate_sources",
+        {"dsg_volume_name": "dsg_landing"})
 
 
 ACTIONS = {"uc1": [reset_uc1], "uc2": [reset_uc2], "uc3": [reset_uc3],

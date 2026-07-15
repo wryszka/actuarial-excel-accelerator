@@ -2,18 +2,19 @@
 # MAGIC %md
 # MAGIC # Use Case 4 · Smoke test
 # MAGIC
-# MAGIC Checks the prepared sources and — if the canvas has been built — the
-# MAGIC parity of its output. The canvas itself is a UI act, so its output is
-# MAGIC reported as **PENDING** (not a failure) until it exists.
+# MAGIC Checks the generated sources and — if the canvas has been built — the
+# MAGIC parity of its output. The canvas is a UI act, so its output is reported
+# MAGIC as **PENDING** (not a failure) until it exists. Standalone: depends on
+# MAGIC nothing but this use case's own `00`/`01`.
 
 # COMMAND ----------
 
 dbutils.widgets.text("catalog_name", "lr_serverless_aws_us_catalog")
 dbutils.widgets.text("schema_name", "actuarial_excel_demo")
-dbutils.widgets.text("exp_volume_name", "exp_landing")
+dbutils.widgets.text("dsg_volume_name", "dsg_landing")
 catalog = dbutils.widgets.get("catalog_name")
 schema = dbutils.widgets.get("schema_name")
-volume = dbutils.widgets.get("exp_volume_name")
+volume = dbutils.widgets.get("dsg_volume_name")
 fqn = f"{catalog}.{schema}"
 vol_path = f"/Volumes/{catalog}/{schema}/{volume}"
 
@@ -33,37 +34,33 @@ def rows(t):
 
 # COMMAND ----------
 
-check("claims source (claim grain)", lambda: (
-    "PASS" if rows("exp_designer_claims_src") > 100_000 else "FAIL",
-    f"{rows('exp_designer_claims_src'):,}"))
-check("premium source (segment × AY)", lambda: (
-    "PASS" if rows("exp_designer_premium_src") > 500 else "FAIL",
-    f"{rows('exp_designer_premium_src'):,}"))
-check("segment lookup", lambda: (
-    "PASS" if rows("exp_dim_segment") == 100 else "FAIL", rows("exp_dim_segment")))
+check("claims source", lambda: ("PASS" if rows("dsg_claims_src") > 10_000 else "FAIL",
+                                 f"{rows('dsg_claims_src'):,}"))
+check("premium source", lambda: ("PASS" if rows("dsg_premium_src") > 400 else "FAIL",
+                                  f"{rows('dsg_premium_src'):,}"))
+check("segment lookup = 100", lambda: ("PASS" if rows("dsg_segment") == 100 else "FAIL",
+                                       rows("dsg_segment")))
+check("benchmark populated", lambda: ("PASS" if rows("dsg_benchmark") > 0 else "FAIL",
+                                      rows("dsg_benchmark")))
 
 
 def extract_file():
     files = {f.name for f in dbutils.fs.ls(vol_path)}
-    ok = "claims_extract_motor_ay2024.csv" in files
-    return ("PASS" if ok else "FAIL", "in volume" if ok else "missing — run demo 3's 08")
+    ok = "claims_extract.csv" in files
+    return ("PASS" if ok else "FAIL", "in volume" if ok else "missing — run 01")
 
 
 check("Excel extract for drag-onto-canvas", extract_file)
 
 
 def canvas_output():
-    if not spark.catalog.tableExists(f"{fqn}.exp_designer_experience"):
-        return ("PENDING", "canvas not built yet — see README act 2")
-    from pyspark.sql import functions as F
-    d = spark.sql(f"SELECT SUM(incurred) i, SUM(earned_premium) p "
-                  f"FROM {fqn}.exp_designer_experience").first()
-    g = spark.sql(f"SELECT SUM(incurred) i, SUM(earned_premium) p "
-                  f"FROM {fqn}.exp_gold_experience").first()
-    ok = (abs(d.i - g.i) <= max(1000.0, abs(g.i) * 0.0001)
-          and abs(d.p - g.p) <= max(1000.0, g.p * 0.0001))
-    return ("PASS" if ok else "FAIL",
-            f"designer £{d.i:,.0f} vs pipeline £{g.i:,.0f} incurred")
+    if not spark.catalog.tableExists(f"{fqn}.dsg_experience"):
+        return ("PENDING", "canvas not built yet — see README")
+    d = spark.sql(f"SELECT SUM(incurred) i, SUM(earned_premium) p FROM {fqn}.dsg_experience").first()
+    b = spark.sql(f"SELECT SUM(incurred) i, SUM(earned_premium) p FROM {fqn}.dsg_benchmark").first()
+    ok = (abs(d.i - b.i) <= max(1000.0, abs(b.i) * 0.0001)
+          and abs(d.p - b.p) <= max(1000.0, b.p * 0.0001))
+    return ("PASS" if ok else "FAIL", f"designer £{d.i:,.0f} vs benchmark £{b.i:,.0f} incurred")
 
 
 check("canvas output parity (totals)", canvas_output)

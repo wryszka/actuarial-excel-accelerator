@@ -88,8 +88,8 @@ SCENARIOS = [
         "folder": f"{FOLDER}/demo_04_lakeflow_designer",
         "doc_tab": os.getenv("DOC_TAB_UC4", "t.xx63b7kbyr11"),
         "youtube": os.getenv("YT_UC4", ""),
-        "tables": ["exp_designer_claims_src", "exp_designer_premium_src"],
-        "optional_tables": ["exp_designer_experience"],
+        "tables": ["dsg_claims_src", "dsg_premium_src", "dsg_benchmark"],
+        "optional_tables": ["dsg_experience"],
         "reset_note": "Rebuilds the canvas source tables and drops the canvas output (~2 min).",
     },
 ]
