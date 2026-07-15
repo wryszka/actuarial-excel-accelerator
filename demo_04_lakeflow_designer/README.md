@@ -51,27 +51,99 @@ Open the folder and run them in order — no deployment needed.
 
 ### Act 2 — build the canvas (5–7 min)
 
-Open **New → Data prep** (Lakeflow Designer) and build — each step is a
-drag-drop operator, or describe it to Genie Code in the assistant pane:
+First-time users: read this whole section once before starting. Every
+step says exactly what to click. You build a diagram left-to-right —
+boxes (called **operators**) joined by arrows — that ends in one output
+table.
 
-1. **Add sources**: `dsg_claims_src`, `dsg_premium_src`, `dsg_segment`.
-   Optionally **drag `claims_extract.csv` from your desktop onto the
-   canvas** (download it from the `dsg_landing` volume first) — the "your
-   file is welcome here" gesture.
-2. **Join** claims → `dsg_segment` on `policy_segment` — the VLOOKUP.
-3. **Aggregate** the joined claims: group by `line_of_business` and
-   `accident_year`, sum `incurred` — the pivot.
-4. **Join** premium → `dsg_segment`, then **aggregate**: group by
-   `line_of_business` and `accident_year`, sum `earned_premium`. (Two
-   branches merging is exactly the Alteryx picture.)
-5. **Join the two aggregates** on `line_of_business` and `accident_year`.
-6. **Derive the measure** — the Genie Code moment: *"add a column
-   loss_ratio equal to incurred divided by earned_premium, rounded to 4
-   decimals"*.
-7. **Preview** — Motor's ratio climbing through 2022–23 should be visible.
-8. **Write the output** to catalog table `dsg_experience` (columns
-   `line_of_business`, `accident_year`, `earned_premium`, `incurred`,
-   `loss_ratio` — keep these names so the parity check matches). Run.
+**What we're building, in plain terms.** Our claims table only carries a
+`policy_segment` code (like `MOT-LON-BRK`); it doesn't say "Motor / London
+/ Broker". A separate table, `dsg_segment`, translates the code into those
+words. Joining the two so every claim gets its line of business is exactly
+what a **VLOOKUP** does in Excel. We do that for claims *and* for premium,
+total each up by line of business × year, put the two totals side by side,
+and divide to get the loss ratio.
+
+**Open Designer:** in the workspace left sidebar click **New** (or the **+**),
+then **Data prep**. A blank canvas opens with a Genie Code prompt box.
+
+**1. Add the three sources.** Click **Add source** (or the **+** on the
+canvas). In the picker, search each table by name and select it — do this
+three times:
+   - `dsg_claims_src`  (the claims)
+   - `dsg_premium_src` (the premium)
+   - `dsg_segment`     (the code → LOB/region/channel lookup)
+
+   You now have three source boxes. *(Optional flourish: instead of adding
+   `dsg_claims_src` from the catalog, drag `claims_extract.csv` from your
+   computer straight onto the canvas — download it from the `dsg_landing`
+   volume first. It becomes a source box the same way. For this build,
+   use the table.)*
+
+**2. Join claims to the lookup — the VLOOKUP.** Drag a **Join** operator
+onto the canvas. Connect two arrows into it: from `dsg_claims_src` and from
+`dsg_segment`. Open the Join (click it) and set:
+   - **Join type:** `Inner join`
+   - **Join condition:** match `policy_segment` (left) to `policy_segment`
+     (right) — pick that column on each side.
+
+   Result: every claim row now also has `line_of_business`, `region`,
+   `channel`. That's the VLOOKUP, done once for the whole table.
+
+**3. Total the claims by LOB and year — the pivot.** Drag an **Aggregate**
+operator; connect the Join's output into it. Open it and set:
+   - **Group by:** click **+ Add grouping** and pick `line_of_business`;
+     **+ Add grouping** again and pick `accident_year`.
+   - **Aggregate by:** click **+ Add aggregation**, choose column
+     `incurred`, function **SUM**, and name the output `incurred`.
+
+   This is a PivotTable: totals of incurred by line of business × year.
+
+**4. Do the same two steps for premium.** Premium also only has the
+segment code, so it needs the same VLOOKUP + total:
+   - Drag a **second Join**. Connect `dsg_premium_src` and `dsg_segment`
+     into it. **Join type:** `Inner join`; **Join condition:**
+     `policy_segment` = `policy_segment`.
+   - Drag a **second Aggregate**. Connect that join into it. **Group by:**
+     `line_of_business`, then `accident_year`. **Aggregate by:** column
+     `earned_premium`, function **SUM**, output name `earned_premium`.
+
+   You now have two parallel branches — claims totals and premium totals —
+   which is the classic two-streams-merging picture from desktop ETL tools.
+
+**5. Put the two totals side by side.** Drag a **third Join**. Connect the
+claims Aggregate (step 3) and the premium Aggregate (step 4) into it.
+   - **Join type:** `Inner join`
+   - **Join condition:** match on **both** keys — `line_of_business` =
+     `line_of_business` **and** `accident_year` = `accident_year` (click
+     **+** to add the second condition).
+
+   Now each row has one line of business, one year, its total incurred and
+   its total earned premium.
+
+**6. Add the loss ratio — let Genie Code write it.** Drag a **Transform**
+operator; connect the step-5 Join into it. Inside it click
+**+ Add a custom column**, name it `loss_ratio`, and in the expression box
+type this in plain English:
+
+   > *loss_ratio = incurred divided by earned_premium, rounded to 4 decimals*
+
+   Genie Code turns that into the actual formula. (You can also just type
+   `round(incurred / earned_premium, 4)` — the box accepts either.)
+
+**7. Preview.** Click any operator and use its data preview to sanity-check.
+On the final Transform, Motor's `loss_ratio` should climb from ~0.75 in
+2021 toward ~0.96 in 2023.
+
+**8. Write the output table.** Drag an **Output** (destination) operator;
+connect the Transform into it. Set:
+   - **Table name:** `dsg_experience`
+   - **Output location:** catalog `lr_dev_aws_us_catalog`, schema
+     `actuarial_excel_demo`
+
+   Keep the column names as built (`line_of_business`, `accident_year`,
+   `earned_premium`, `incurred`, `loss_ratio`) so the parity check matches.
+   Then click **Run** (top of the canvas). It builds the table.
 
 ### Act 3 — prove it, then the governance close (4 min)
 
