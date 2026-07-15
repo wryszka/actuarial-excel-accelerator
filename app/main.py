@@ -43,6 +43,21 @@ SCENARIOS = [
         "doc_tab": os.getenv("DOC_TAB_UC1", "t.bzv4poipaxlz"),
         "youtube": os.getenv("YT_UC1", ""),
         "tables": ["brd_bronze_claims", "brd_silver_claims", "brd_quarantine"],
+        "does": "Migrates a legacy Excel + VBA data-cleaning process to a governed, "
+                "automated Databricks pipeline — and shows you can trust the result.",
+        "steps": [
+            "The 'before': an actuary downloads the monthly claims bordereau CSV and runs "
+            "an old Excel macro that cleans it (dedupe, parse dates, map status codes, "
+            "compute incurred) and exports a standardised file for the pricing system.",
+            "Paste the VBA into Genie Code and ask what it does — it reveals the macro has "
+            "been silently dropping claims with unparseable dates for years.",
+            "Ask Genie Code to convert it: you get a notebook that applies the same rules, "
+            "landing bronze → silver, and quarantines the bad rows instead of dropping them.",
+            "Reconcile: the notebook's output ties out to the old Excel file to the penny — "
+            "plus the claims Excel was throwing away are now visible.",
+            "Automate it: a file-arrival job runs the whole pipeline the moment next month's "
+            "file lands in the volume. No one runs anything by hand again.",
+        ],
         "reset_note": "Drops the brd_ tables and clears incoming/ (~1 min).",
     },
     {
@@ -58,6 +73,23 @@ SCENARIOS = [
         "youtube": os.getenv("YT_UC2", ""),
         "tables": ["sfm_inputs", "sfm_results", "sfm_impact"],
         "model": f"{FQ}.sfm_scr_model",
+        "does": "Turns a Solvency-II-style capital model that lives in a spreadsheet into a "
+                "versioned, governed model in Unity Catalog — then runs it across a whole "
+                "group of entities and measures a calibration change in seconds.",
+        "steps": [
+            "The 'before': a Standard-Formula SCR model in an Excel workbook — one file per "
+            "entity, with a calibration block (regulatory parameters) typed in by hand.",
+            "The model's formulas are re-implemented as an MLflow model and registered in "
+            "Unity Catalog; the 2025 calibration is logged with it, so a model version IS a "
+            "calibration (aliases @cal_2025, @cal_2026, @champion).",
+            "Score all 100 entities in one pass from a governed inputs table — every result "
+            "row carries the model version that produced it, so nothing is unexplained.",
+            "Parity: for the workbook's entity, the registered model matches the spreadsheet "
+            "to four decimal places.",
+            "The 2026 calibration arrives → register version 2 → re-score → an impact table "
+            "shows the group capital change by entity and by risk module. In the spreadsheet "
+            "world this is weeks of rework; here it is seconds, and fully reproducible.",
+        ],
         "reset_note": "Drops the sfm_ tables; registered model versions are kept (~1 min).",
     },
     {
@@ -75,6 +107,23 @@ SCENARIOS = [
         "genie_title": "Claims Analytics — Actuarial Excel Accelerator",
         "dashboards": ["Use Case 3 — Claims Ad-hoc Analytics",
                        "Demo 3 — Portfolio Experience Monitoring"],
+        "does": "Replaces the monthly pivot-table ritual with Genie (ask questions in plain "
+                "English) and a published AI/BI dashboard everyone can see — over a book far "
+                "larger than Excel can open.",
+        "steps": [
+            "The 'before': a claims listing lands in Excel and the analyst builds pivots — "
+            "claims by line of business and status, average severity by region, largest "
+            "open claims, the monthly trend.",
+            "Point at the same data as a governed table (exp_claims_listing, ~146k claims), "
+            "already documented for Genie.",
+            "Quick-setup a Genie space over that one table and ask the pivot questions in "
+            "plain English — click 'show code' to reveal the SQL it wrote.",
+            "Publish an AI/BI dashboard of the same views, shared live with everyone — no "
+            "emailing a workbook around.",
+            "Extend: add premium, loss-ratio and development tables to the space and ask the "
+            "questions Excel can't hold — 'why is Motor 2023 worse than 2021?' — over the "
+            "full ~800k-transaction book.",
+        ],
         "reset_note": "Full world regen + Genie space back to its one-table starter (~15 min).",
     },
     {
@@ -90,6 +139,23 @@ SCENARIOS = [
         "youtube": os.getenv("YT_UC4", ""),
         "tables": ["dsg_claims_src", "dsg_premium_src", "dsg_benchmark"],
         "optional_tables": ["dsg_experience"],
+        "does": "Rebuilds the kind of join–clean–aggregate workflow analysts run in desktop "
+                "ETL tools (Alteryx, Power Query) as a no-code Lakeflow Designer canvas — "
+                "governed, with real code behind it, provably equal to a coded pipeline.",
+        "steps": [
+            "The 'before': the monthly blend built as a drag-and-drop canvas on someone's "
+            "desktop — a per-seat licence, no lineage, output emailed around.",
+            "In Lakeflow Designer, add the source tables (claims, premium, the segment "
+            "lookup) — or drag a CSV straight onto the canvas.",
+            "Build the blend visually: join claims to the lookup (the VLOOKUP), aggregate by "
+            "line of business and accident year (the pivot), blend in premium, and add a "
+            "loss_ratio column by describing it to Genie Code.",
+            "Write the result to a governed table and run it. Parity check: it matches the "
+            "coded pipeline's benchmark, cell for cell.",
+            "The close — open the real code behind the canvas, view its lineage in Unity "
+            "Catalog, and schedule it as a monthly job. From an uncontrolled desktop tool to "
+            "a fully governed platform, with the code written for you.",
+        ],
         "reset_note": "Rebuilds the canvas source tables and drops the canvas output (~2 min).",
     },
 ]
@@ -196,8 +262,8 @@ def reset_status():
 
 
 CLIENT_SCENARIOS = [
-    {k: sc[k] for k in ("id", "n", "title", "strap", "wow", "folder",
-                        "doc_tab", "youtube", "reset_note")}
+    {k: sc[k] for k in ("id", "n", "title", "strap", "wow", "does", "steps",
+                        "folder", "doc_tab", "youtube", "reset_note")}
     for sc in SCENARIOS
 ]
 
@@ -284,6 +350,14 @@ h1{font-size:27px;letter-spacing:-.01em;margin:6px 0 6px}
 .wow{background:var(--blue-50);border:1px solid var(--blue-100);border-radius:12px;
      padding:14px 16px;color:var(--blue-900);font-size:13.5px;line-height:1.55;
      margin:0 0 18px}
+.does{margin:0 0 14px;font-size:13.5px;line-height:1.55;color:var(--gray-900)}
+.steps{margin:0;padding-left:0;list-style:none;counter-reset:s;
+     display:flex;flex-direction:column;gap:10px}
+.steps li{position:relative;padding-left:34px;font-size:13px;line-height:1.5;
+     color:var(--gray-600);counter-increment:s}
+.steps li::before{content:counter(s);position:absolute;left:0;top:-1px;width:22px;
+     height:22px;border-radius:50%;background:var(--blue-100);color:var(--blue-700);
+     font-weight:800;font-size:11px;display:flex;align-items:center;justify-content:center}
 .video{aspect-ratio:16/9;border-radius:10px;overflow:hidden;background:var(--gray-100);
      display:flex;align-items:center;justify-content:center;color:var(--gray-400);
      font-weight:600;border:1px dashed var(--gray-200)}
@@ -390,6 +464,10 @@ function detail(sc){
     <h1>${esc(sc.title)} <span id="chip-${sc.id}" style="vertical-align:4px">${chipFor(sc.id)}</span></h1>
     <p class="sub">${esc(sc.strap)}</p>
     <p class="wow">${esc(sc.wow)}</p>
+    <div class="card"><h2>What this demo does</h2>
+      <p class="does">${esc(sc.does)}</p>
+      <ol class="steps">${sc.steps.map(t => `<li>${esc(t)}</li>`).join('')}</ol>
+    </div>
     <div class="card"><h2>Recording</h2>${video}</div>
     <div class="card"><h2>Assets</h2><div class="assets">
       <a class="asset" href="${host}/#workspace${sc.folder}" target="_blank">
