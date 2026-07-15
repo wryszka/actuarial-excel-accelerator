@@ -17,7 +17,7 @@
 
 # COMMAND ----------
 
-dbutils.widgets.text("catalog_name", "lr_serverless_aws_us_catalog")
+dbutils.widgets.text("catalog_name", "lr_dev_aws_us_catalog")
 dbutils.widgets.text("schema_name", "actuarial_excel_demo")
 dbutils.widgets.text("warehouse_id", "a3b61648ea4809e3")
 dbutils.widgets.text("dashboard_name", "Use Case 3 — Claims Ad-hoc Analytics")

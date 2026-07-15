@@ -14,7 +14,7 @@
 
 # COMMAND ----------
 
-dbutils.widgets.text("catalog_name", "lr_serverless_aws_us_catalog")
+dbutils.widgets.text("catalog_name", "lr_dev_aws_us_catalog")
 dbutils.widgets.text("schema_name", "actuarial_excel_demo")
 dbutils.widgets.text("dsg_volume_name", "dsg_landing")
 dbutils.widgets.dropdown("reset", "no", ["no", "yes"])

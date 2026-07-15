@@ -17,7 +17,7 @@
 
 # COMMAND ----------
 
-dbutils.widgets.text("catalog_name", "lr_serverless_aws_us_catalog")
+dbutils.widgets.text("catalog_name", "lr_dev_aws_us_catalog")
 dbutils.widgets.text("schema_name", "actuarial_excel_demo")
 dbutils.widgets.text("source_file", "bordereau_2025_11.csv")
 dbutils.widgets.text("vba_output_path", "")  # blank = committed expected output

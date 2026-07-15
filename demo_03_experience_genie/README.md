@@ -43,10 +43,9 @@ them.
 
 ## Run it
 
-```bash
-databricks bundle deploy -t dev
-# open /Workspace/Shared/actuarial-excel-accelerator/demo_03_experience_genie/
-```
+The notebooks are in the workspace at
+`/Workspace/Shared/actuarial-excel-accelerator/demo_03_experience_genie/`.
+Open the folder and run them in order — no deployment needed.
 
 World build (once): `00_setup` → `01_generate_data` → `02_bronze` →
 `03_silver` → `04_gold`. Then the use case itself:

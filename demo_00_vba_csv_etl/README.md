@@ -28,10 +28,9 @@ All tables are prefixed `brd_` in the shared `actuarial_excel_demo` schema.
 
 ## Run it
 
-```bash
-databricks bundle deploy -t dev
-# open /Workspace/Shared/actuarial-excel-accelerator/demo_00_vba_csv_etl/
-```
+The notebooks are in the workspace at
+`/Workspace/Shared/actuarial-excel-accelerator/demo_00_vba_csv_etl/`.
+Open the folder and run them in order — no deployment needed.
 
 1. Run `00_setup`.
 2. Upload `data/bordereau_2025_11.csv` to the volume's `incoming/` folder

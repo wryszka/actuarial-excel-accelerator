@@ -11,7 +11,7 @@
 
 # COMMAND ----------
 
-dbutils.widgets.text("catalog_name", "lr_serverless_aws_us_catalog")
+dbutils.widgets.text("catalog_name", "lr_dev_aws_us_catalog")
 dbutils.widgets.text("schema_name", "actuarial_excel_demo")
 dbutils.widgets.text("rfr_volume_name", "rfr_landing")
 

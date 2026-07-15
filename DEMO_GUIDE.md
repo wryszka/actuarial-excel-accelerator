@@ -31,7 +31,15 @@ independently.
   the Excel original — to the penny — before asking anyone to trust it.
 - **Synthetic data throughout**; no customer names or data anywhere.
 
-## Deploy once
+## Where the notebooks live
+
+The notebooks are already in the workspace at
+`/Workspace/Shared/actuarial-excel-accelerator/` — one flat folder per use
+case. Open the folder for the use case you want and run the notebooks in
+order; each use case is independent, so you can run just one. No
+deployment needed.
+
+Only if you are setting this up in a **fresh workspace** of your own:
 
 ```bash
 git clone https://github.com/wryszka/actuarial-excel-accelerator.git

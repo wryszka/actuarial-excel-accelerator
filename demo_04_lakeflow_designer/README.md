@@ -37,10 +37,9 @@ the sidebar — it's GA).
 
 ## Run it
 
-```bash
-databricks bundle deploy -t dev
-# open /Workspace/Shared/actuarial-excel-accelerator/demo_04_lakeflow_designer/
-```
+The notebooks are in the workspace at
+`/Workspace/Shared/actuarial-excel-accelerator/demo_04_lakeflow_designer/`.
+Open the folder and run them in order — no deployment needed.
 
 ### Act 1 — frame + sources (3 min)
 

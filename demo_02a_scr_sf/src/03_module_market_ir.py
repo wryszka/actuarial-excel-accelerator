@@ -16,7 +16,7 @@
 
 # COMMAND ----------
 
-dbutils.widgets.text("catalog_name", "lr_serverless_aws_us_catalog")
+dbutils.widgets.text("catalog_name", "lr_dev_aws_us_catalog")
 dbutils.widgets.text("schema_name", "actuarial_excel_demo")
 dbutils.widgets.text("scenario_id", "base")
 dbutils.widgets.text("ir_shock_bps_override", "")  # blank = use the assumption default

@@ -49,14 +49,13 @@ emailing the file.
 
 ## Run it
 
-```bash
-databricks bundle deploy -t dev
-# open /Workspace/Shared/actuarial-excel-accelerator/demo_02b_sf_model_uc/
-# Run All: 00 → 01 → 02 → 03 → 04 → 99
-```
+The notebooks are in the workspace at
+`/Workspace/Shared/actuarial-excel-accelerator/demo_02b_sf_model_uc/`.
+Open the folder and Run All in order: `00 → 01 → 02 → 03 → 04 → 99`.
+No deployment needed.
 
-Widgets on every notebook default to the values in `databricks.yml`
-(`catalog_name`, `schema_name`, `sfm_volume_name`).
+Widget defaults (`catalog_name`, `schema_name`, `sfm_volume_name`) are set
+for this workspace; change them if you run in another catalog/schema.
 
 ## Suggested walkthrough
 
