@@ -1,38 +1,34 @@
 # Use Case 4 — The monthly blend, without the desktop ETL tool
 
-**Standalone — depends on no other use case.** The act everyone with an
-Alteryx / Power Query / KNIME licence recognises: several sources in, a
-canvas of join–clean–aggregate steps, a summary out — every month. **What
-it becomes:** the same canvas, built in **Lakeflow Designer** in minutes,
-except the output is a governed table in Unity Catalog, the workflow is
-**backed by real code**, lineage is automatic, and the schedule button
-turns it into production.
+Every insurance analyst knows this workflow: pull a few extracts, join and
+clean them, aggregate to a summary, send it out — every month, usually in a
+desktop ETL tool (Alteryx, Power Query, KNIME) running on someone's laptop.
 
-The closing message, and the reason this use case exists:
-**you move from an uncontrolled system to a fully controlled and governed
-one — with the code right there behind the canvas.** No-code doesn't mean
-no code; it means the code is written *for* you.
+Here you build the same thing on a visual canvas in **Lakeflow Designer** —
+but the output is a governed table in Unity Catalog, the flow is real code
+behind the scenes, lineage is automatic, and one click turns it into a
+scheduled production job. You move from an uncontrolled, per-seat tool to a
+fully governed platform — and the code is written *for* you.
 
-## What gets built
+## What you'll build
 
-The loss-ratio experience summary, visually: claims joined to the segment
-lookup (the VLOOKUP), aggregated by line of business × accident year,
-premium blended in, `loss_ratio` derived — output to **`dsg_experience`**.
-`01_generate_sources` also builds `dsg_benchmark` — the same summary as the
-coded pipeline would produce — so the canvas result can be **proven
-identical**: the analyst's no-code path and the engineers' code path meet
-on one platform.
+The loss-ratio experience summary: claims and premium each joined to a
+segment lookup, totalled by line of business × accident year, combined, and
+divided to give the loss ratio — written to the table `dsg_experience`.
 
-| Asset (all prefixed `dsg_`) | What it is |
+Everything is synthetic and prefixed `dsg_`:
+
+| Asset | What it is |
 |---|---|
-| `dsg_claims_src` | claim-grain source, only `policy_segment` so the lookup join is a real step |
-| `dsg_premium_src` | earned premium by segment × accident year — the second branch |
-| `dsg_segment` | the segment → LOB/region/channel lookup |
-| `dsg_benchmark` | the coded-pipeline answer, for the parity check |
-| `dsg_experience` | the canvas output (you create this in Designer) |
-| `dsg_landing` volume | holds `claims_extract.csv` for the drag-onto-canvas beat |
+| `dsg_claims_src` | claims at claim grain, carrying only a `policy_segment` code |
+| `dsg_premium_src` | earned premium by segment × accident year |
+| `dsg_segment` | the lookup: `policy_segment` → line of business / region / channel |
+| `dsg_benchmark` | the same summary the coded pipeline produces — used to prove the canvas matches |
+| `dsg_experience` | the table you create on the canvas |
+| `dsg_landing` volume | holds `claims_extract.csv` for the drag-onto-canvas step |
 
-Lakeflow Designer must be enabled on the workspace (**New → Data prep** in
+This use case is standalone — it depends on no other use case. Lakeflow
+Designer must be enabled on the workspace (look for **New → Data prep** in
 the sidebar — it's GA).
 
 ## Run it
@@ -41,192 +37,138 @@ The notebooks are in the workspace at
 `/Workspace/Shared/actuarial-excel-accelerator/demo_04_lakeflow_designer/`.
 Open the folder and run them in order — no deployment needed.
 
-### Act 1 — frame + sources (3 min)
+### 1. Generate the sources
 
-1. Framing, one sentence: *"If this blend runs in a desktop ETL tool
-   today, it runs on somebody's machine, under a per-seat licence, with no
-   lineage, and the output gets emailed."*
-2. Run `00_setup`, then `01_generate_sources` — builds the source tables,
-   the lookup, the benchmark and the Excel extract.
+Run `00_setup`, then `01_generate_sources`. This creates the three source
+tables, the benchmark, and the Excel extract in the `dsg_landing` volume.
 
-### Act 2 — build the canvas (5–7 min)
+Framing for a live audience: *"This blend runs in a desktop ETL tool today —
+on somebody's machine, under a per-seat licence, with no lineage, and the
+output gets emailed around."*
 
-First-time users: read this whole section once before starting. Every
-step says exactly what to click. You build a diagram left-to-right —
-boxes (called **operators**) joined by arrows — that ends in one output
-table.
+### 2. Build the canvas
 
-**Name every box as you go.** Each operator lands with a generic label
-(“Join”, “Aggregate 1”…). Rename it so the canvas reads like a story:
-double-click the box's title (or open the box and edit the name field at
-the top of its panel) and type the name given in each step. A well-named
-canvas is the whole point — anyone opening it later sees what it does.
+Open **New → Data prep** in the sidebar. You get a blank canvas: you'll lay
+out boxes (**operators**) left to right, connect them with arrows, and end
+at one output table. **Rename each box as you add it** — double-click its
+title and use the name given below — so the finished canvas reads like a
+story.
 
-**What we're building, in plain terms.** Our claims table only carries a
-`policy_segment` code (like `MOT-LON-BRK`); it doesn't say "Motor / London
-/ Broker". A separate table, `dsg_segment`, translates the code into those
-words. Joining the two so every claim gets its line of business is exactly
-what a **VLOOKUP** does in Excel. We do that for claims *and* for premium,
-total each up by line of business × year, put the two totals side by side,
-and divide to get the loss ratio.
+**The idea.** The claims table only carries a segment *code* like
+`MOT-LON-BRK` — not "Motor / London / Broker". The `dsg_segment` table
+translates the code into those words; joining the two is exactly a
+**VLOOKUP**. You do that for claims and for premium, total each by line of
+business and year, combine the two totals, and divide to get the loss ratio.
 
-**Open Designer:** in the workspace left sidebar click **New** (or the **+**),
-then **Data prep**. A blank canvas opens with a Genie Code prompt box.
+**Step 1 — add the three sources.** Click **Add source** and pick each
+table (search `dsg_` to filter; if nothing appears, point the picker's
+catalog/schema selector at `lr_dev_aws_us_catalog` / `actuarial_excel_demo`):
 
-**1. Add the three sources.** Click **Add source** (or the **+** on the
-canvas). In the picker, browse to catalog **`lr_dev_aws_us_catalog`** →
-schema **`actuarial_excel_demo`** (or paste the full name into the search
-box), and select each of these three tables — do it three times:
-   - `lr_dev_aws_us_catalog.actuarial_excel_demo.dsg_claims_src`  (the claims)
-   - `lr_dev_aws_us_catalog.actuarial_excel_demo.dsg_premium_src` (the premium)
-   - `lr_dev_aws_us_catalog.actuarial_excel_demo.dsg_segment`     (the code → LOB/region/channel lookup)
+- `dsg_claims_src`
+- `dsg_premium_src`
+- `dsg_segment`
 
-   Tip: type `dsg_` in the picker's search box to filter to just these
-   three. If nothing shows, check the catalog/schema selector at the top of
-   the picker is pointed at `lr_dev_aws_us_catalog` / `actuarial_excel_demo`.
-   You now have three source boxes. *(Optional flourish: instead of adding
-   `dsg_claims_src` from the catalog, drag `claims_extract.csv` from your
-   computer straight onto the canvas — download it from the `dsg_landing`
-   volume first. It becomes a source box the same way. For this build,
-   use the table.)*
+*(Optional: instead of the claims table, drag `claims_extract.csv` onto the
+canvas — download it from the `dsg_landing` volume first — to show a desktop
+file becoming a source. For the build, use the table.)*
 
-**2. Join claims to the lookup — the VLOOKUP.** Drag a **Join** operator
-onto the canvas. Connect two arrows into it: from `dsg_claims_src` and from
-`dsg_segment`. Open the Join (click it) and set:
-   - **Join type:** `Inner join`
-   - **Join condition:** match `policy_segment` (left) to `policy_segment`
-     (right) — pick that column on each side.
-   - **Name this block `lookup claims segment`.**
+**Step 2 — look up the claims' segment (the VLOOKUP).** Drag a **Join** and
+connect `dsg_claims_src` and `dsg_segment` into it. Set **Join type** to
+`Inner join` and the **condition** to `policy_segment` = `policy_segment`.
+Name it **`lookup claims segment`**. Every claim now carries its line of
+business, region and channel.
 
-   Result: every claim row now also has `line_of_business`, `region`,
-   `channel`. That's the VLOOKUP, done once for the whole table.
+**Step 3 — total the claims (the pivot).** Drag an **Aggregate** and connect
+the previous step into it. Under **Group by**, add `line_of_business` and
+`accident_year`. Under **Aggregate by**, add `incurred` with function
+**SUM**, output name `incurred`. Name it **`aggregate incurred`**.
 
-**3. Total the claims by LOB and year — the pivot.** Drag an **Aggregate**
-operator; connect the Join's output into it. Open it and set:
-   - **Group by:** click **+ Add grouping** and pick `line_of_business`;
-     **+ Add grouping** again and pick `accident_year`.
-   - **Aggregate by:** click **+ Add aggregation**, choose column
-     `incurred`, function **SUM**, and name the output column `incurred`.
-   - **Name this block `aggregate incurred`.**
+**Step 4 — do the same for premium.** Repeat steps 2–3 on the premium side:
 
-   This is a PivotTable: totals of incurred by line of business × year.
+- A **Join** of `dsg_premium_src` and `dsg_segment`, inner join on
+  `policy_segment` — name it **`lookup premium segment`**.
+- An **Aggregate** grouped by `line_of_business` and `accident_year`,
+  summing `earned_premium` (output name `earned_premium`) — name it
+  **`aggregate premium`**.
 
-**4. Do the same two steps for premium.** Premium also only has the
-segment code, so it needs the same VLOOKUP + total:
-   - Drag a **second Join**. Connect `dsg_premium_src` and `dsg_segment`
-     into it. **Join type:** `Inner join`; **Join condition:**
-     `policy_segment` = `policy_segment`. **Name it `lookup premium segment`.**
-   - Drag a **second Aggregate**. Connect that join into it. **Group by:**
-     `line_of_business`, then `accident_year`. **Aggregate by:** column
-     `earned_premium`, function **SUM**, output column `earned_premium`.
-     **Name it `aggregate premium`.**
+Or build both in one line with Genie Code:
 
-   *Prefer to drive this with Genie Code? In the assistant, type (one line):*
+`join dsg_premium_src and dsg_segment, inner join, policy_segment to policy_segment; then add aggregate, group by line_of_business then accident_year, aggregate by earned_premium with SUM and output name earned_premium`
 
-   `join dsg_premium_src and dsg_segment, inner join, policy_segment to policy_segment; then add aggregate, group by line_of_business then accident_year, aggregate by earned_premium with SUM and output name earned_premium`
+You now have two branches — claims totals and premium totals — ready to
+merge.
 
-   *— it builds the same two blocks for you.*
+**Step 5 — combine the two totals.** Drag a **Join** and connect
+`aggregate incurred` and `aggregate premium` into it. Set **Join type** to
+`Inner join` and add **two** conditions (click **+** for the second):
+`line_of_business` = `line_of_business` and `accident_year` =
+`accident_year`. Both inputs carry those two key columns, so in the
+**output columns** untick `line_of_business` and `accident_year` from the
+premium side, leaving each key once alongside `incurred` and
+`earned_premium`. Name it **`combine claims and premium`**.
 
-   You now have two parallel branches — claims totals and premium totals —
-   which is the classic two-streams-merging picture from desktop ETL tools.
+**Step 6 — add the loss ratio.** Drag a **SQL** operator and connect
+`combine claims and premium` into it. Use the input name shown at the top of
+the editor in the `FROM` (spaces become underscores), and set the query to:
 
-**5. Combine the two totals — one Join operator.** Drag a third **Join**
-operator. Connect **both** `aggregate incurred` and `aggregate premium`
-into it. Open it and set:
+```sql
+SELECT *, round(incurred / earned_premium, 4) AS loss_ratio
+FROM combine_claims_and_premium
+```
 
-   - **Join type:** `Inner join`.
-   - **Join condition:** add **two** conditions — click **+** to get the
-     second: `line_of_business` = `line_of_business` **and**
-     `accident_year` = `accident_year`.
-   - **Output columns:** both inputs carry `line_of_business` and
-     `accident_year`, so the join lists each key twice. **Untick the two
-     duplicates** (deselect `line_of_business` and `accident_year` from the
-     *premium* side) so each key appears once. Leave `incurred` and
-     `earned_premium` ticked. *This deselect is the step that makes the join
-     work — skip it and you get duplicate-column errors downstream.*
-   - **Name this block `combine claims and premium`.**
+Name it **`add loss ratio`**.
 
-   Each row now has one line of business, one year, total incurred and
-   total earned premium.
+**Step 7 — write the output.** Drag an **Output** operator and connect
+`add loss ratio` into it. Set **Table name** to `dsg_experience` and
+**Output location** to catalog `lr_dev_aws_us_catalog`, schema
+`actuarial_excel_demo`. Name it **`write dsg_experience`**, then click
+**Run** at the top of the canvas.
 
-**6. Add the loss ratio.** The Join can't add a calculated column, so add
-one small step. Drag a **SQL** operator and connect
-`combine claims and premium` into it. The SQL editor shows the input's name
-near the top — use that in the `FROM` (it's the block name with spaces as
-underscores, e.g. `combine_claims_and_premium`). Set the query to:
+Open the `add loss ratio` preview to sanity-check: Motor's `loss_ratio`
+should climb from ~0.75 in 2021 toward ~0.96 in 2023.
 
-   ```sql
-   SELECT *, round(incurred / earned_premium, 4) AS loss_ratio
-   FROM combine_claims_and_premium
-   ```
+### 3. Prove it, then make the governance point
 
-   **Name this block `add loss ratio`.** (`SELECT *` is safe here — the Join
-   already removed the duplicate keys in step 5.)
+**Run `02_parity`.** Every line-of-business × accident-year cell matches
+`dsg_benchmark`, the coded pipeline's answer. The analyst's no-code canvas
+and the engineers' pipeline produce the same numbers.
 
-**7. Preview.** Click the `add loss ratio` block and use its data preview to
-sanity-check. Motor's `loss_ratio` should climb from ~0.75 in 2021 toward
-~0.96 in 2023.
+Then the payoff — three things a desktop ETL tool can't do:
 
-**8. Write the output table.** Drag an **Output** (destination) operator;
-connect `add loss ratio` into it. Set:
-   - **Table name:** `dsg_experience`
-   - **Output location:** catalog `lr_dev_aws_us_catalog`, schema
-     `actuarial_excel_demo`
-   - **Name this block `write dsg_experience`.**
+- **It's all code.** Right-click the canvas → **Open code pane**. The flow
+  you drew is generated, readable code that actually runs — so it lives
+  under version control (commit, review in a pull request, roll back)
+  instead of as a binary file copied between laptops. No hidden, unversioned
+  flows multiplying across the org.
+- **Share in one click.** It's a workspace object with normal permissions —
+  **Share** it and a colleague opens, runs or edits the same flow. One
+  source of truth, not a copy per person.
+- **Governed and automatic.** Catalog Explorer → `dsg_experience` →
+  **Lineage** walks back to the sources, so "where did this number come
+  from" is answered by the platform. And **Schedule** turns the canvas into
+  a monitored monthly job — no workflow server, no seat licence.
 
-   Keep the column names as built (`line_of_business`, `accident_year`,
-   `earned_premium`, `incurred`, `loss_ratio`) so the parity check matches.
-   Then click **Run** (top of the canvas). It builds the table.
+Run `99_validate` for the smoke test (it reports the canvas output as
+pending until you've built it once).
 
-### Act 3 — prove it, then the governance close (4 min)
+### Optional — a dashboard from the result, with Genie Code
 
-1. Run `02_parity` — every LOB × accident-year cell matches the coded
-   pipeline benchmark. *The analyst's canvas equals the engineers' pipeline.*
-2. **It's all code behind the scenes.** **Right-click anywhere on the
-   canvas → Open code pane** (right-click also gives auto-layout, fit view,
-   undo/redo). The pane shows the visual flow as the generated, readable
-   code that actually runs. That's the point to make: the flow *is* code,
-   so it lives in the platform under version control (commit it to Git,
-   review it in a pull request, roll it back), instead of a binary workflow
-   file copied around desktops. No hidden, unversioned flows multiplying
-   across the org — the thing every mature desktop-ETL estate ends up
-   fighting.
-3. **Share it in one click.** It's a workspace object with normal
-   permissions: click **Share** and give a colleague access to open, run
-   or edit the exact same flow — no exporting a file, no "which version
-   did you send me?". One source of truth, not a copy per person.
-4. **Lineage**: Catalog Explorer → `dsg_experience` → Lineage — walk back
-   to the sources. "Where did this number come from" is a platform feature.
-5. **Schedule it** — the canvas becomes a monthly production job:
-   monitored, permissioned, serverless. No workflow server, no seat licence.
-6. `99_validate` for the smoke test (canvas output shows PENDING until
-   act 2 has been done once).
+The output table is instantly usable by the rest of the platform. In
+Catalog Explorer, open `dsg_experience` → **Create → Dashboard**, then
+describe the charts to the assistant, e.g. *"bar chart of loss_ratio by
+line_of_business"* and *"line chart of loss_ratio by accident_year, one line
+per line_of_business"*. **Publish** and share the link — a live dashboard on
+the same governed table, no extra pipeline. (Use Case 3 goes deeper on this.)
 
-### Optional — turn the result into a dashboard with Genie Code
+## Bring your own data
 
-The output table is instantly usable by the rest of the platform. To show
-that, build a quick AI/BI dashboard on it without writing SQL:
-
-1. Catalog Explorer → open `dsg_experience` → **Create → Dashboard** (this
-   drops you into a new AI/BI dashboard wired to the table).
-2. In the dashboard's assistant (Genie Code), describe the charts you want,
-   e.g.:
-   > *bar chart of loss_ratio by line_of_business*
-   > *line chart of loss_ratio by accident_year, one line per line_of_business*
-3. **Publish** and share the link — the same governed table now feeds a
-   live dashboard, no extra pipeline. (Use Case 3 is the full version of
-   this story if you want to go deeper.)
-
-## Bring your own data (the on-ramp, shown in every use case)
-
-Your own extract gets into Databricks in one gesture — no pipeline needed:
-Catalog Explorer → your schema → **Create → Table** → drop the CSV → the
-UI infers the schema → Create. Even shorter here: **drag the file directly
-onto the Designer canvas** and it becomes a source node.
+Getting your own extract into Databricks is one gesture: Catalog Explorer →
+your schema → **Create → Table** → drop the CSV → the UI infers the schema →
+Create. Or, on the canvas here, drag the file straight on and it becomes a
+source.
 
 ## About this demo
 
-All data is synthetic — the book resembles a UK general-insurance
-portfolio but every value is fabricated. No customer data is used. Desktop
-ETL tools are referenced as a workflow *shape* familiar to many analysts,
-not as a comparison of specific products.
+All data is synthetic — the book resembles a UK general-insurance portfolio
+but every value is fabricated. No customer data is used. Desktop ETL tools
+are referenced as a familiar workflow *shape*, not as a product comparison.
