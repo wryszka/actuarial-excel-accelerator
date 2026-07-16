@@ -121,40 +121,47 @@ segment code, so it needs the same VLOOKUP + total:
      `earned_premium`, function **SUM**, output column `earned_premium`.
      **Name it `aggregate premium`.**
 
-   *Prefer to drive this with Genie Code? In the assistant, type:*
-   > *join dsg_premium and dsg_segment, inner join, policy_segment to
-   > policy_segment; then add aggregate, group by line_of_business then
-   > accident_year, aggregate by earned_premium with SUM and output name
-   > earned_premium*
+   *Prefer to drive this with Genie Code? In the assistant, type (one line):*
+
+   `join dsg_premium_src and dsg_segment, inner join, policy_segment to policy_segment; then add aggregate, group by line_of_business then accident_year, aggregate by earned_premium with SUM and output name earned_premium`
+
    *— it builds the same two blocks for you.*
 
    You now have two parallel branches — claims totals and premium totals —
    which is the classic two-streams-merging picture from desktop ETL tools.
 
-**5. Put the two totals side by side.** Drag a **third Join**. Connect
-`aggregate incurred` (step 3) and `aggregate premium` (step 4) into it.
-   - **Join type:** `Inner join`
-   - **Join condition:** match on **both** keys — `line_of_business` =
-     `line_of_business` **and** `accident_year` = `accident_year` (click
-     **+** to add the second condition).
-   - **Name this block `combine claims and premium`.**
+**5. Put the two totals side by side.** The simplest, most reliable way is
+to let Genie Code build it. Click on the canvas, open the assistant, and
+type (one line):
 
-   Now each row has one line of business, one year, its total incurred and
+   `join aggregate incurred and aggregate premium on line_of_business and accident_year, inner join, and keep line_of_business, accident_year, incurred, earned_premium`
+
+   That produces one **Join** block. **Name it `combine claims and premium`.**
+   Each row now has one line of business, one year, its total incurred and
    its total earned premium.
 
+   *Doing it by hand instead?* Drag a **Join**, connect `aggregate incurred`
+   and `aggregate premium` into it, set **Join type** `Inner join`, and add
+   **two** join conditions: `line_of_business` = `line_of_business` **and**
+   `accident_year` = `accident_year` (use **+ Add condition** for the
+   second). Then — this is the step that trips people up — in the Join's
+   **output column** list, **untick `line_of_business` and `accident_year`
+   from one of the two inputs** so each key appears once. Keep `incurred`
+   (from the claims side) and `earned_premium` (from the premium side).
+
 **6. Add the loss ratio — with the SQL operator.** Drag a **SQL** operator
-onto the canvas and connect `combine claims and premium` into it. It opens
-with an editable query against that input; set the query to add the ratio
-column (keep every existing column, add one):
+onto the canvas and connect `combine claims and premium` into it. The SQL
+editor shows the input's name near the top — use that exact name in the
+`FROM`. Replace the query with:
 
    ```sql
-   SELECT *, round(incurred / earned_premium, 4) AS loss_ratio
+   SELECT line_of_business, accident_year, incurred, earned_premium,
+          round(incurred / earned_premium, 4) AS loss_ratio
    FROM combine_claims_and_premium
    ```
 
-   The `FROM` name is the input block's name with spaces as underscores —
-   if unsure, the SQL editor shows the available input name at the top; use
-   that. **Name this block `add loss ratio`.**
+   (Listing the columns explicitly avoids the duplicate-key problem a
+   `SELECT *` would hit.) **Name this block `add loss ratio`.**
 
    *Prefer no-code? If your workspace shows a **Transform** operator, use it
    instead: connect step 5 in, click **+ Add a custom column**, set the
