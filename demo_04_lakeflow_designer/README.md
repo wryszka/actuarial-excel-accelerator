@@ -130,35 +130,32 @@ segment code, so it needs the same VLOOKUP + total:
    You now have two parallel branches — claims totals and premium totals —
    which is the classic two-streams-merging picture from desktop ETL tools.
 
-**5. Combine the two totals and add the loss ratio — in one SQL operator.**
-A manual Join of the two aggregates is fiddly (both carry
-`line_of_business` and `accident_year`, so you get duplicate key columns).
-Do the join *and* the ratio in a single **SQL** operator instead — it's the
-reliable path:
+**5. Combine the two totals and add the loss ratio — one Join operator.**
+Drag a third **Join** operator. Connect **both** `aggregate incurred` and
+`aggregate premium` into it. Open it and set, in order:
 
-   - Drag one **SQL** operator. Connect **both** `aggregate incurred` **and**
-     `aggregate premium` into it (two arrows into the same SQL block).
-   - The SQL editor lists the two input names near the top — they'll be like
-     `aggregate_incurred` and `aggregate_premium`. Paste this, swapping those
-     names in if they differ:
+   - **Join type:** `Inner join`.
+   - **Join condition:** add **two** conditions — click **+** to get the
+     second: `line_of_business` = `line_of_business` **and**
+     `accident_year` = `accident_year`.
+   - **Output columns:** both inputs carry `line_of_business` and
+     `accident_year`, so the join lists each key twice. **Untick the two
+     duplicates** (deselect `line_of_business` and `accident_year` from the
+     *premium* side) so each key appears once. Leave `incurred` and
+     `earned_premium` ticked. *This deselect is the step that makes the join
+     work — skip it and you get duplicate-column errors downstream.*
+   - **Add the loss ratio as a custom column:** in the Join, click
+     **+ Add column** (custom / expression column), name it `loss_ratio`,
+     and enter the expression:
 
-   ```sql
-   SELECT c.line_of_business,
-          c.accident_year,
-          c.incurred,
-          p.earned_premium,
-          round(c.incurred / p.earned_premium, 4) AS loss_ratio
-   FROM aggregate_incurred c
-   JOIN aggregate_premium p
-     ON c.line_of_business = p.line_of_business
-    AND c.accident_year   = p.accident_year
-   ```
+     ```
+     round(incurred / earned_premium, 4)
+     ```
 
    - **Name this block `combine and ratio`.**
 
-   One block gives you: one row per line of business × year, with total
-   incurred, total earned premium and the loss ratio — no duplicate keys,
-   no column-picking.
+   One Join block now gives you: one row per line of business × year, with
+   total incurred, total earned premium and the loss ratio.
 
 **6. Preview.** Click the `combine and ratio` block and use its data preview
 to sanity-check. Motor's `loss_ratio` should climb from ~0.75 in 2021 toward
