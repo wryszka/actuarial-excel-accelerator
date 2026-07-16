@@ -130,9 +130,9 @@ segment code, so it needs the same VLOOKUP + total:
    You now have two parallel branches — claims totals and premium totals —
    which is the classic two-streams-merging picture from desktop ETL tools.
 
-**5. Combine the two totals and add the loss ratio — one Join operator.**
-Drag a third **Join** operator. Connect **both** `aggregate incurred` and
-`aggregate premium` into it. Open it and set, in order:
+**5. Combine the two totals — one Join operator.** Drag a third **Join**
+operator. Connect **both** `aggregate incurred` and `aggregate premium`
+into it. Open it and set:
 
    - **Join type:** `Inner join`.
    - **Join condition:** add **two** conditions — click **+** to get the
@@ -144,25 +144,31 @@ Drag a third **Join** operator. Connect **both** `aggregate incurred` and
      *premium* side) so each key appears once. Leave `incurred` and
      `earned_premium` ticked. *This deselect is the step that makes the join
      work — skip it and you get duplicate-column errors downstream.*
-   - **Add the loss ratio as a custom column:** in the Join, click
-     **+ Add column** (custom / expression column), name it `loss_ratio`,
-     and enter the expression:
+   - **Name this block `combine claims and premium`.**
 
-     ```
-     round(incurred / earned_premium, 4)
-     ```
+   Each row now has one line of business, one year, total incurred and
+   total earned premium.
 
-   - **Name this block `combine and ratio`.**
+**6. Add the loss ratio.** The Join can't add a calculated column, so add
+one small step. Drag a **SQL** operator and connect
+`combine claims and premium` into it. The SQL editor shows the input's name
+near the top — use that in the `FROM` (it's the block name with spaces as
+underscores, e.g. `combine_claims_and_premium`). Set the query to:
 
-   One Join block now gives you: one row per line of business × year, with
-   total incurred, total earned premium and the loss ratio.
+   ```sql
+   SELECT *, round(incurred / earned_premium, 4) AS loss_ratio
+   FROM combine_claims_and_premium
+   ```
 
-**6. Preview.** Click the `combine and ratio` block and use its data preview
-to sanity-check. Motor's `loss_ratio` should climb from ~0.75 in 2021 toward
+   **Name this block `add loss ratio`.** (`SELECT *` is safe here — the Join
+   already removed the duplicate keys in step 5.)
+
+**7. Preview.** Click the `add loss ratio` block and use its data preview to
+sanity-check. Motor's `loss_ratio` should climb from ~0.75 in 2021 toward
 ~0.96 in 2023.
 
-**7. Write the output table.** Drag an **Output** (destination) operator;
-connect `combine and ratio` into it. Set:
+**8. Write the output table.** Drag an **Output** (destination) operator;
+connect `add loss ratio` into it. Set:
    - **Table name:** `dsg_experience`
    - **Output location:** catalog `lr_dev_aws_us_catalog`, schema
      `actuarial_excel_demo`
