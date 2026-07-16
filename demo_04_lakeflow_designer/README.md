@@ -56,6 +56,12 @@ step says exactly what to click. You build a diagram left-to-right —
 boxes (called **operators**) joined by arrows — that ends in one output
 table.
 
+**Name every box as you go.** Each operator lands with a generic label
+(“Join”, “Aggregate 1”…). Rename it so the canvas reads like a story:
+double-click the box's title (or open the box and edit the name field at
+the top of its panel) and type the name given in each step. A well-named
+canvas is the whole point — anyone opening it later sees what it does.
+
 **What we're building, in plain terms.** Our claims table only carries a
 `policy_segment` code (like `MOT-LON-BRK`); it doesn't say "Motor / London
 / Broker". A separate table, `dsg_segment`, translates the code into those
@@ -86,6 +92,7 @@ onto the canvas. Connect two arrows into it: from `dsg_claims_src` and from
    - **Join type:** `Inner join`
    - **Join condition:** match `policy_segment` (left) to `policy_segment`
      (right) — pick that column on each side.
+   - **Name this block `lookup claims segment`.**
 
    Result: every claim row now also has `line_of_business`, `region`,
    `channel`. That's the VLOOKUP, done once for the whole table.
@@ -95,7 +102,8 @@ operator; connect the Join's output into it. Open it and set:
    - **Group by:** click **+ Add grouping** and pick `line_of_business`;
      **+ Add grouping** again and pick `accident_year`.
    - **Aggregate by:** click **+ Add aggregation**, choose column
-     `incurred`, function **SUM**, and name the output `incurred`.
+     `incurred`, function **SUM**, and name the output column `incurred`.
+   - **Name this block `aggregate incurred`.**
 
    This is a PivotTable: totals of incurred by line of business × year.
 
@@ -103,43 +111,56 @@ operator; connect the Join's output into it. Open it and set:
 segment code, so it needs the same VLOOKUP + total:
    - Drag a **second Join**. Connect `dsg_premium_src` and `dsg_segment`
      into it. **Join type:** `Inner join`; **Join condition:**
-     `policy_segment` = `policy_segment`.
+     `policy_segment` = `policy_segment`. **Name it `lookup premium segment`.**
    - Drag a **second Aggregate**. Connect that join into it. **Group by:**
      `line_of_business`, then `accident_year`. **Aggregate by:** column
-     `earned_premium`, function **SUM**, output name `earned_premium`.
+     `earned_premium`, function **SUM**, output column `earned_premium`.
+     **Name it `aggregate premium`.**
 
    You now have two parallel branches — claims totals and premium totals —
    which is the classic two-streams-merging picture from desktop ETL tools.
 
-**5. Put the two totals side by side.** Drag a **third Join**. Connect the
-claims Aggregate (step 3) and the premium Aggregate (step 4) into it.
+**5. Put the two totals side by side.** Drag a **third Join**. Connect
+`aggregate incurred` (step 3) and `aggregate premium` (step 4) into it.
    - **Join type:** `Inner join`
    - **Join condition:** match on **both** keys — `line_of_business` =
      `line_of_business` **and** `accident_year` = `accident_year` (click
      **+** to add the second condition).
+   - **Name this block `combine claims and premium`.**
 
    Now each row has one line of business, one year, its total incurred and
    its total earned premium.
 
-**6. Add the loss ratio — let Genie Code write it.** Drag a **Transform**
-operator; connect the step-5 Join into it. Inside it click
-**+ Add a custom column**, name it `loss_ratio`, and in the expression box
-type this in plain English:
+**6. Add the loss ratio — with the SQL operator.** Drag a **SQL** operator
+onto the canvas and connect `combine claims and premium` into it. It opens
+with an editable query against that input; set the query to add the ratio
+column (keep every existing column, add one):
 
-   > *loss_ratio = incurred divided by earned_premium, rounded to 4 decimals*
+   ```sql
+   SELECT *, round(incurred / earned_premium, 4) AS loss_ratio
+   FROM combine_claims_and_premium
+   ```
 
-   Genie Code turns that into the actual formula. (You can also just type
-   `round(incurred / earned_premium, 4)` — the box accepts either.)
+   The `FROM` name is the input block's name with spaces as underscores —
+   if unsure, the SQL editor shows the available input name at the top; use
+   that. **Name this block `add loss ratio`.**
 
-**7. Preview.** Click any operator and use its data preview to sanity-check.
-On the final Transform, Motor's `loss_ratio` should climb from ~0.75 in
-2021 toward ~0.96 in 2023.
+   *Prefer no-code? If your workspace shows a **Transform** operator, use it
+   instead: connect step 5 in, click **+ Add a custom column**, set the
+   Rename field to `loss_ratio`, and type the expression in plain English —
+   “incurred divided by earned_premium, rounded to 4 decimals” — and Genie
+   Code writes it. Either operator gives the same result.*
+
+**7. Preview.** Click the `add loss ratio` block and use its data preview to
+sanity-check. Motor's `loss_ratio` should climb from ~0.75 in 2021 toward
+~0.96 in 2023.
 
 **8. Write the output table.** Drag an **Output** (destination) operator;
-connect the Transform into it. Set:
+connect `add loss ratio` into it. Set:
    - **Table name:** `dsg_experience`
    - **Output location:** catalog `lr_dev_aws_us_catalog`, schema
      `actuarial_excel_demo`
+   - **Name this block `write dsg_experience`.**
 
    Keep the column names as built (`line_of_business`, `accident_year`,
    `earned_premium`, `incurred`, `loss_ratio`) so the parity check matches.
