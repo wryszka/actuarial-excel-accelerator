@@ -34,6 +34,13 @@ available; if your workspace has the serverless micro-app runtime,
 prefer it — this app is idle most of the time and scales to zero there.
 Otherwise stop the app when not demoing.
 
+Let everyone in the workspace open and run it:
+
+```bash
+databricks permissions update apps excel-accelerator --json \
+  '{"access_control_list":[{"group_name":"users","permission_level":"CAN_USE"}]}'
+```
+
 ## Reset mechanics
 
 The app never drops tables itself: Reset triggers the job
