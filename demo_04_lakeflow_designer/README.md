@@ -130,51 +130,42 @@ segment code, so it needs the same VLOOKUP + total:
    You now have two parallel branches — claims totals and premium totals —
    which is the classic two-streams-merging picture from desktop ETL tools.
 
-**5. Put the two totals side by side.** The simplest, most reliable way is
-to let Genie Code build it. Click on the canvas, open the assistant, and
-type (one line):
+**5. Combine the two totals and add the loss ratio — in one SQL operator.**
+A manual Join of the two aggregates is fiddly (both carry
+`line_of_business` and `accident_year`, so you get duplicate key columns).
+Do the join *and* the ratio in a single **SQL** operator instead — it's the
+reliable path:
 
-   `join aggregate incurred and aggregate premium on line_of_business and accident_year, inner join, and keep line_of_business, accident_year, incurred, earned_premium`
-
-   That produces one **Join** block. **Name it `combine claims and premium`.**
-   Each row now has one line of business, one year, its total incurred and
-   its total earned premium.
-
-   *Doing it by hand instead?* Drag a **Join**, connect `aggregate incurred`
-   and `aggregate premium` into it, set **Join type** `Inner join`, and add
-   **two** join conditions: `line_of_business` = `line_of_business` **and**
-   `accident_year` = `accident_year` (use **+ Add condition** for the
-   second). Then — this is the step that trips people up — in the Join's
-   **output column** list, **untick `line_of_business` and `accident_year`
-   from one of the two inputs** so each key appears once. Keep `incurred`
-   (from the claims side) and `earned_premium` (from the premium side).
-
-**6. Add the loss ratio — with the SQL operator.** Drag a **SQL** operator
-onto the canvas and connect `combine claims and premium` into it. The SQL
-editor shows the input's name near the top — use that exact name in the
-`FROM`. Replace the query with:
+   - Drag one **SQL** operator. Connect **both** `aggregate incurred` **and**
+     `aggregate premium` into it (two arrows into the same SQL block).
+   - The SQL editor lists the two input names near the top — they'll be like
+     `aggregate_incurred` and `aggregate_premium`. Paste this, swapping those
+     names in if they differ:
 
    ```sql
-   SELECT line_of_business, accident_year, incurred, earned_premium,
-          round(incurred / earned_premium, 4) AS loss_ratio
-   FROM combine_claims_and_premium
+   SELECT c.line_of_business,
+          c.accident_year,
+          c.incurred,
+          p.earned_premium,
+          round(c.incurred / p.earned_premium, 4) AS loss_ratio
+   FROM aggregate_incurred c
+   JOIN aggregate_premium p
+     ON c.line_of_business = p.line_of_business
+    AND c.accident_year   = p.accident_year
    ```
 
-   (Listing the columns explicitly avoids the duplicate-key problem a
-   `SELECT *` would hit.) **Name this block `add loss ratio`.**
+   - **Name this block `combine and ratio`.**
 
-   *Prefer no-code? If your workspace shows a **Transform** operator, use it
-   instead: connect step 5 in, click **+ Add a custom column**, set the
-   Rename field to `loss_ratio`, and type the expression in plain English —
-   “incurred divided by earned_premium, rounded to 4 decimals” — and Genie
-   Code writes it. Either operator gives the same result.*
+   One block gives you: one row per line of business × year, with total
+   incurred, total earned premium and the loss ratio — no duplicate keys,
+   no column-picking.
 
-**7. Preview.** Click the `add loss ratio` block and use its data preview to
-sanity-check. Motor's `loss_ratio` should climb from ~0.75 in 2021 toward
+**6. Preview.** Click the `combine and ratio` block and use its data preview
+to sanity-check. Motor's `loss_ratio` should climb from ~0.75 in 2021 toward
 ~0.96 in 2023.
 
-**8. Write the output table.** Drag an **Output** (destination) operator;
-connect `add loss ratio` into it. Set:
+**7. Write the output table.** Drag an **Output** (destination) operator;
+connect `combine and ratio` into it. Set:
    - **Table name:** `dsg_experience`
    - **Output location:** catalog `lr_dev_aws_us_catalog`, schema
      `actuarial_excel_demo`
