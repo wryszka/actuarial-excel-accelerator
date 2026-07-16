@@ -74,12 +74,16 @@ and divide to get the loss ratio.
 then **Data prep**. A blank canvas opens with a Genie Code prompt box.
 
 **1. Add the three sources.** Click **Add source** (or the **+** on the
-canvas). In the picker, search each table by name and select it — do this
-three times:
-   - `dsg_claims_src`  (the claims)
-   - `dsg_premium_src` (the premium)
-   - `dsg_segment`     (the code → LOB/region/channel lookup)
+canvas). In the picker, browse to catalog **`lr_dev_aws_us_catalog`** →
+schema **`actuarial_excel_demo`** (or paste the full name into the search
+box), and select each of these three tables — do it three times:
+   - `lr_dev_aws_us_catalog.actuarial_excel_demo.dsg_claims_src`  (the claims)
+   - `lr_dev_aws_us_catalog.actuarial_excel_demo.dsg_premium_src` (the premium)
+   - `lr_dev_aws_us_catalog.actuarial_excel_demo.dsg_segment`     (the code → LOB/region/channel lookup)
 
+   Tip: type `dsg_` in the picker's search box to filter to just these
+   three. If nothing shows, check the catalog/schema selector at the top of
+   the picker is pointed at `lr_dev_aws_us_catalog` / `actuarial_excel_demo`.
    You now have three source boxes. *(Optional flourish: instead of adding
    `dsg_claims_src` from the catalog, drag `claims_extract.csv` from your
    computer straight onto the canvas — download it from the `dsg_landing`
@@ -116,6 +120,13 @@ segment code, so it needs the same VLOOKUP + total:
      `line_of_business`, then `accident_year`. **Aggregate by:** column
      `earned_premium`, function **SUM**, output column `earned_premium`.
      **Name it `aggregate premium`.**
+
+   *Prefer to drive this with Genie Code? In the assistant, type:*
+   > *join dsg_premium and dsg_segment, inner join, policy_segment to
+   > policy_segment; then add aggregate, group by line_of_business then
+   > accident_year, aggregate by earned_premium with SUM and output name
+   > earned_premium*
+   *— it builds the same two blocks for you.*
 
    You now have two parallel branches — claims totals and premium totals —
    which is the classic two-streams-merging picture from desktop ETL tools.
@@ -170,12 +181,15 @@ connect `add loss ratio` into it. Set:
 
 1. Run `02_parity` — every LOB × accident-year cell matches the coded
    pipeline benchmark. *The analyst's canvas equals the engineers' pipeline.*
-2. **It's all code behind the scenes.** Open the code view of the canvas —
-   the visual flow is generated, readable code. So it lives in the
-   platform under version control (commit it to Git, review it in a pull
-   request, roll it back), instead of a binary workflow file copied around
-   desktops. No hidden, unversioned flows multiplying across the org — the
-   thing every mature desktop-ETL estate ends up fighting.
+2. **It's all code behind the scenes.** **Right-click anywhere on the
+   canvas → Open code pane** (right-click also gives auto-layout, fit view,
+   undo/redo). The pane shows the visual flow as the generated, readable
+   code that actually runs. That's the point to make: the flow *is* code,
+   so it lives in the platform under version control (commit it to Git,
+   review it in a pull request, roll it back), instead of a binary workflow
+   file copied around desktops. No hidden, unversioned flows multiplying
+   across the org — the thing every mature desktop-ETL estate ends up
+   fighting.
 3. **Share it in one click.** It's a workspace object with normal
    permissions: click **Share** and give a colleague access to open, run
    or edit the exact same flow — no exporting a file, no "which version
