@@ -149,15 +149,37 @@ connect the Transform into it. Set:
 
 1. Run `02_parity` — every LOB × accident-year cell matches the coded
    pipeline benchmark. *The analyst's canvas equals the engineers' pipeline.*
-2. **Open the code behind the canvas** — real, readable, versionable in
-   Git. The desktop tool's workflow file was a binary on a shared drive;
-   this is code you can review.
-3. **Lineage**: Catalog Explorer → `dsg_experience` → Lineage — walk back
+2. **It's all code behind the scenes.** Open the code view of the canvas —
+   the visual flow is generated, readable code. So it lives in the
+   platform under version control (commit it to Git, review it in a pull
+   request, roll it back), instead of a binary workflow file copied around
+   desktops. No hidden, unversioned flows multiplying across the org — the
+   thing every mature desktop-ETL estate ends up fighting.
+3. **Share it in one click.** It's a workspace object with normal
+   permissions: click **Share** and give a colleague access to open, run
+   or edit the exact same flow — no exporting a file, no "which version
+   did you send me?". One source of truth, not a copy per person.
+4. **Lineage**: Catalog Explorer → `dsg_experience` → Lineage — walk back
    to the sources. "Where did this number come from" is a platform feature.
-4. **Schedule it** — the canvas becomes a monthly production job:
+5. **Schedule it** — the canvas becomes a monthly production job:
    monitored, permissioned, serverless. No workflow server, no seat licence.
-5. `99_validate` for the smoke test (canvas output shows PENDING until
+6. `99_validate` for the smoke test (canvas output shows PENDING until
    act 2 has been done once).
+
+### Optional — turn the result into a dashboard with Genie Code
+
+The output table is instantly usable by the rest of the platform. To show
+that, build a quick AI/BI dashboard on it without writing SQL:
+
+1. Catalog Explorer → open `dsg_experience` → **Create → Dashboard** (this
+   drops you into a new AI/BI dashboard wired to the table).
+2. In the dashboard's assistant (Genie Code), describe the charts you want,
+   e.g.:
+   > *bar chart of loss_ratio by line_of_business*
+   > *line chart of loss_ratio by accident_year, one line per line_of_business*
+3. **Publish** and share the link — the same governed table now feeds a
+   live dashboard, no extra pipeline. (Use Case 3 is the full version of
+   this story if you want to go deeper.)
 
 ## Bring your own data (the on-ramp, shown in every use case)
 
