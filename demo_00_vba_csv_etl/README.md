@@ -20,28 +20,34 @@ If you've never opened Databricks, that's the point — this is written for
 you. Follow the steps in order. Everything in Databricks is named with a
 **`brd_`** prefix so it's easy to find; all data is synthetic.
 
+**Needs:** serverless compute. (No Unity Catalog model registry, Genie or
+Designer required — this is the simplest use case.)
+
 ## How we solve it
 
 You'll paste the old macro code into an assistant that explains it and
 rewrites it as a notebook, run the new version over the same file — **done
 in seconds, not minutes** — schedule it to run every morning by itself, and
-prove the numbers match Excel to the penny.
+prove the numbers match today's Excel output.
 
 ## Before you start (once)
 
 > **New here?** Read the one-page **Start here** tab of the demo guide first
-> — where the notebooks live, what "Run all" means, and how to bring your own
-> data. Every use case shares that setup; it isn't repeated here.
+> — where the notebooks live, what "Run all" means, running in your own
+> workspace, and the glossary. It isn't repeated here.
 
-- **Build the Excel workbook** so you have the "before" to show: open
-  `excel/ClaimsBordereauETL.xlsx`, add a sheet named `Clean`, import
-  `excel/ClaimsBordereauETL.bas` in the VBA editor, and save as
-  `ClaimsBordereauETL.xlsm`. Full steps in `excel/VBA_SPEC.md`.
 - **Find the notebooks:** left sidebar → **Workspace** → `Shared` →
   `actuarial-excel-accelerator` → `demo_00_vba_csv_etl` (`00_setup`,
   `01_clean_claims`, `02_reconciliation`, `99_validate`).
 - **Run `00_setup` once** (open it, **Run all**) — it loads the raw CSV into
   a table. (~1 minute.)
+- **Presenter only — the Excel workbook.** Step 1 shows the "before" in
+  Excel. The macro-enabled `ClaimsBordereauETL.xlsm` has to be built once by
+  the presenter (Excel blocks macros in downloaded files); see
+  `excel/VBA_SPEC.md`, ~5 minutes. **If you skip it, start at Step 2** — the
+  Databricks half (Steps 2–7) runs entirely on its own and is the substance.
+
+Everything from Step 2 onward is just "open a notebook, click Run all".
 
 ---
 
@@ -115,9 +121,13 @@ No more "remember to run the macro". Schedule the notebook:
 
 Open `02_reconciliation` and click **Run all**. It loads the Excel macro's
 output back into Databricks as a table and compares it to the notebook's
-output — row count and every total. **They match to the penny.** Then it
-shows the one difference: the claims Excel had been silently dropping, now
-safely kept in `brd_quarantine`.
+output — row count and every total. **They match to the penny** — so you can
+trust the migration reproduces exactly what you get today.
+
+Then the one deliberate difference: the claims with unreadable dates that the
+macro silently dropped are kept in `brd_quarantine`. So the new version
+matches your current Excel output *and* surfaces what that output was quietly
+missing — you lose nothing and gain the dropped rows back.
 
 Run `99_validate` for an automated all-green check.
 

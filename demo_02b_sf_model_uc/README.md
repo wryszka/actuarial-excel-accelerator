@@ -36,11 +36,14 @@ and clicking **Run all**.
 Everything in Databricks is prefixed **`sfm_`** so it's easy to find; all
 data is synthetic.
 
+**Needs:** serverless compute + Unity Catalog **model registry** (this use
+case registers a model). No Genie or Designer required.
+
 ## Before you start (once)
 
 > **New here?** Read the one-page **Start here** tab of the demo guide first
-> — where the notebooks live, what "Run all" means, and how to bring your own
-> data. Every use case shares that setup; it isn't repeated here.
+> — where the notebooks live, what "Run all" means, running in your own
+> workspace, and the glossary. It isn't repeated here.
 
 - **Find the notebooks:** left sidebar → **Workspace** → `Shared` →
   `actuarial-excel-accelerator` → `demo_02b_sf_model_uc` (`00_setup`,

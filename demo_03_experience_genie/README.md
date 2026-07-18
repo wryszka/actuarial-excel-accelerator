@@ -33,12 +33,14 @@ notebook and clicking **Run all**, or clicking in the Databricks UI.
 Everything in Databricks is prefixed **`exp_`** so it's easy to find; all
 data is synthetic.
 
+**Needs:** serverless compute + **Genie** and **AI/BI dashboards** (both GA).
+No model registry or Designer required.
+
 ## Before you start (once)
 
 > **New here?** Read the one-page **Start here** tab of the demo guide first
-> — it covers where the notebooks live, what "Run all" means, and how to
-> bring your own data. Every use case shares that setup; it isn't repeated
-> in each one.
+> — where the notebooks live, what "Run all" means, running in your own
+> workspace, and the glossary. It isn't repeated in each one.
 
 - **Find the notebooks:** left sidebar → **Workspace** → `Shared` →
   `actuarial-excel-accelerator` → `demo_03_experience_genie`.

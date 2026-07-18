@@ -56,25 +56,35 @@ Read this once; the individual use cases don't repeat it.
 **Where the notebooks live.** They're already in the workspace at
 `/Workspace/Shared/actuarial-excel-accelerator/` — one flat folder per use
 case (`demo_00_vba_csv_etl`, `demo_02b_sf_model_uc`, `demo_03_experience_genie`,
-`demo_04_lakeflow_designer`). Find them: left sidebar → **Workspace** →
-`Shared` → `actuarial-excel-accelerator`. Each use case is independent — run
-just the one you want.
+`demo_04_lakeflow_designer`, `demo_05_orchestration`). Find them: left
+sidebar → **Workspace** → `Shared` → `actuarial-excel-accelerator`. Each use
+case is independent — run just the one you want.
 
 **How to run a notebook.** Open it and click **Run all** at the top. That's
 the only "running" you need to do — no command line anywhere.
 
 **Where the data and files live.** Each use case keeps its source files
 (Excel workbooks, CSVs) in a **volume** — a folder in Databricks. Find them:
-left sidebar → **Catalog** → `lr_dev_aws_us_catalog` → `actuarial_excel_demo`
-→ **Volumes**. Click a file to download it.
+left sidebar → **Catalog** → the catalog → the schema → **Volumes**. Click a
+file to download it.
 
-**Bring your own data (once, applies everywhere).** To run any use case on
-your own file instead of the built-in data: left sidebar → **Catalog** →
-your schema → **Create → Table** → drop your CSV → the UI reads the columns →
-**Create**. It's now a governed table you can point the notebooks at. The
-built-in demo tables already exist, so this is optional.
+## Running in your own workspace (or Free Edition)
 
-Only if you are setting this up in a **fresh workspace** of your own:
+The demo is pre-installed in the workspace above and points at catalog
+**`lr_dev_aws_us_catalog`**, schema **`actuarial_excel_demo`**. If you are
+running it **somewhere else** — your own workspace, a customer's, or
+Databricks Free Edition — do this one thing:
+
+> **Every notebook has `catalog_name` and `schema_name` boxes (widgets) at
+> the top. Set them to your own catalog and schema before you click Run
+> all.** Nothing else changes. (On Free Edition use catalog `workspace` or
+> your default; everything else works the same.)
+
+The docs below show the built-in `lr_dev_aws_us_catalog` path in click-paths
+so they read concretely — substitute your own wherever you see it.
+
+Setting up in a brand-new workspace from the source repo (one-time, needs
+the Databricks CLI):
 
 ```bash
 git clone https://github.com/wryszka/actuarial-excel-accelerator.git
@@ -83,5 +93,50 @@ cd actuarial-excel-accelerator
 databricks bundle deploy -t dev
 ```
 
-Each use-case tab (or each folder's `README.md`) has the step-by-step
-from there.
+## Bring your own data (once, applies everywhere)
+
+To run any use case on your own file instead of the built-in data: left
+sidebar → **Catalog** → your schema → **Create → Table** → drop your CSV →
+the UI reads the columns → **Create**. It's now a governed table you can
+point the notebooks at. The built-in demo tables already exist, so this is
+optional.
+
+## Presenter pre-flight — before you show this live
+
+Most of the demo is "open notebook → Run all". Two use cases have a little
+manual prep that is **not** in Run all — do it *before* your session:
+
+1. **UC1 — the Excel workbook.** The macro-enabled workbook
+   `ClaimsBordereauETL.xlsm` is presenter-built (Excel won't let macros ship
+   in a downloaded file). Build it once following
+   `demo_00_vba_csv_etl/excel/VBA_SPEC.md` (~5 min), or skip the Excel scene
+   and start the story at "here's the macro's code" — the Databricks half
+   runs entirely on its own.
+2. **UC4 — the Designer canvas.** Building the visual canvas is a live
+   click-through (there's no "Run all" for it). Do a dry run once so the
+   steps are muscle memory; `01_generate_sources` + `02_parity` around it are
+   normal notebooks.
+3. **Check the workspace supports what each use case needs** — see the
+   *Needs* line at the top of each use-case tab. In short: serverless compute
+   everywhere; UC2 needs Unity Catalog model registry; UC4 needs Lakeflow
+   Designer (GA); UC3/UC4/UC5 use Genie / dashboards / schedules.
+4. **Warm it up.** Run each use case end to end once on the target workspace
+   the day before, and open the Genie space / dashboards so first load is
+   instant on the day.
+
+## Glossary (for non-actuaries and non-Databricks readers)
+
+- **Bordereau** — a claims (or premium) listing sent by an administrator;
+  one row per claim.
+- **Incurred** — the total cost of a claim = paid so far + still outstanding.
+- **Loss ratio** — incurred ÷ earned premium; the headline profitability
+  measure (0.85 = 85%).
+- **SCR / Standard Formula** — Solvency Capital Requirement; the EU-prescribed
+  ("Standard Formula") capital an insurer must hold.
+- **Volume** — a folder for files inside Databricks (holds the CSVs/workbooks).
+- **Unity Catalog** — Databricks' governance layer: catalogs → schemas →
+  tables/models, with permissions and lineage.
+- **Genie** — ask questions of your data in plain English; it writes the SQL.
+- **Notebook / Run all** — a page of steps you run by clicking one button.
+
+Each use-case tab (or each folder's `README.md`) has the step-by-step.

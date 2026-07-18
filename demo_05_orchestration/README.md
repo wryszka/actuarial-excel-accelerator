@@ -33,12 +33,20 @@ They're two different kinds of automation, and both matter:
 
 Designer builds a box; the Job chains the boxes.
 
+**Needs:** serverless compute + **Lakeflow Jobs** (standard). Because it
+chains Use Cases 1–3, those must be runnable — in particular **run UC2 once
+first** so the `sfm_scr_model` (with its `@cal_2026` version) exists, or the
+model task has nothing to score.
+
 ## Before you start (once)
 
-> **New here?** Read the one-page **Start here** tab of the demo guide first.
+> **New here?** Read the one-page **Start here** tab of the demo guide first
+> — running in your own workspace, and the glossary.
 
-- **This uses Use Cases 1–3's notebooks**, which are already in the
-  workspace. Nothing new to install.
+- **Run Use Cases 1, 2 and 3 at least once** (each is quick — open the
+  folder, Run all). This use case orchestrates their notebooks, so their
+  tables and the registered model need to exist. Once they do, the pipeline
+  re-runs them on demand or on a schedule.
 - **Find the notebook:** left sidebar → **Workspace** → `Shared` →
   `actuarial-excel-accelerator` → `demo_05_orchestration` →
   `01_create_pipeline_job`.

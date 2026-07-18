@@ -29,9 +29,13 @@ Everything is synthetic and prefixed `dsg_`:
 | `dsg_experience` | the table you create on the canvas |
 | `dsg_landing` volume | holds `claims_extract.csv` for the drag-onto-canvas step |
 
-This use case is standalone — it depends on no other use case. Lakeflow
-Designer must be enabled on the workspace (look for **New → Data prep** in
-the sidebar — it's GA).
+This use case is standalone — it depends on no other use case.
+
+**Needs:** serverless compute + **Lakeflow Designer** (GA — look for
+**New → Data prep** in the sidebar). If your workspace doesn't show Data
+prep, this is the one use case it can't run. New here? See the **Start here**
+tab of the demo guide (running in your own workspace, the glossary) — it
+isn't repeated here.
 
 ## Run it
 
