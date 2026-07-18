@@ -1,94 +1,172 @@
-# Use Case 2 — From spreadsheet model to governed model
+# Use Case 2 — Move a capital model out of the spreadsheet
 
-**What gets migrated:** a Standard-Formula capital model that lives in an
-Excel workbook — one file per entity, a typed-in calibration block, no
-version history, shared by email. **What it becomes:** a **versioned
-model registered in Unity Catalog** (`sfm_scr_model`), scored against a
-governed inputs table across the whole group in one pass, with every
-result traceable to the exact model version — and therefore the exact
-calibration — that produced it.
+## The problem
 
-The centre of this use case is the conceptual jump:
-**the model stops being a file and becomes a governed asset.**
+A lot of actuarial models live in a single Excel workbook: a Solvency II
+Standard Formula SCR calculation, a reserving model, a pricing engine. It
+works — but it carries real pain:
 
-## The "before"
+- **One file per entity.** A group with 100 entities means 100 near-identical
+  workbooks, each maintained by hand.
+- **Updates are manual and risky.** When the regulator changes a parameter,
+  someone retypes the calibration block into every file and hopes no formula
+  broke. It takes days each quarter.
+- **No version history.** "Which parameters produced last quarter's number?"
+  has no reliable answer — the file has been overwritten since.
+- **No governance or audit.** The model is a file on a laptop or a shared
+  drive. Who ran it, with what inputs, when? Nobody can say.
+- **No reuse.** Sharing means emailing the workbook. Everyone ends up with a
+  slightly different copy.
 
-`SF_Model.xlsx` (in the `sfm_assets` volume and in `excel/`) is a
-deliberately simple three-module Standard Formula for one entity:
+## How we solve it
 
-- non-life premium & reserve risk, market interest-rate risk, catastrophe
-- correlation-matrix aggregation → BSCR, operational-risk add-on → SCR
-- an `Inputs` tab, a `Calibration` tab (the parameter block the actuary
-  retypes when the regulator updates it), a `Model` tab with live formulas
+We take the same model and make it a **governed, versioned asset in Unity
+Catalog**. The formulas move into a notebook; we register the model so that
+**each version is a calibration** (2025, 2026, …); we score the *whole
+group* in one run instead of one file at a time; and every result is
+permanently traceable to the model version that produced it. Updating the
+calibration becomes registering a new version — and comparing the capital
+impact of that update takes seconds, not weeks.
 
-Real-life pain this file carries: a group of 100 entities means 100
-workbooks; a calibration update means retyping the block in each one;
-"which parameters produced the Q3 number?" has no answer; sharing means
-emailing the file.
+You will never touch a command line. Everything is done by opening a notebook
+and clicking **Run all**.
 
-## The "after" — assets in Databricks (all prefixed `sfm_`)
+## The picture
 
-| Asset | What it is |
+```
+   SF_Model.xlsx  ──▶  one entity, live formulas          the "before"
+   (Inputs / Calibration / Model tabs)                    one file per entity
+
+        move the formulas into a notebook, register as a model
+                              │
+                              ▼
+   sfm_inputs (100 entities) ─▶ sfm_scr_model  ─▶ sfm_results  ─▶ sfm_impact
+                               v1 = @cal_2025      one row per       2026 vs 2025
+                               v2 = @cal_2026      entity+version     capital change
+```
+
+Everything in Databricks is prefixed **`sfm_`** so it's easy to find; all
+data is synthetic.
+
+## Before you start (once)
+
+- **Find the notebooks in Databricks:** left sidebar → **Workspace** →
+  `Shared` → `actuarial-excel-accelerator` → `demo_02b_sf_model_uc`. You'll
+  see `00_setup`, `01_inputs`, `02_register_model`, `03_score`,
+  `04_recalibrate_2026`, `99_validate`.
+- **Run `00_setup` once.** Open it, click **Run all** at the top. It creates
+  the `sfm_assets` folder, copies in the source files (the workbook, the
+  inputs, the two calibrations), and loads the inputs table. (~1 minute.)
+
+---
+
+## The walkthrough
+
+### Step 1 — The model, in Excel (the "before")
+
+1. Download `SF_Model.xlsx`: left sidebar → **Catalog** →
+   `lr_dev_aws_us_catalog` → `actuarial_excel_demo` → Volumes → `sfm_assets`
+   → click `SF_Model.xlsx` → **Download**. Open it in Excel.
+2. Look at the three tabs, the way an actuary would:
+   - **Inputs** — this entity's premium, reserves, assets, liabilities.
+   - **Calibration** — the regulator's parameters (shocks, correlations).
+     This is the block that gets retyped on every update.
+   - **Model** — the formulas: three risk modules, aggregated to **SCR**.
+     For this entity, SCR ≈ **£125m**.
+3. Run it the way you would: change a number on the **Inputs** tab (say,
+   bump premium volume) and watch **SCR** recalculate on the Model tab.
+
+**The talk track (the pain):** *"This is one entity. The group has a hundred — so a hundred of these files. Every quarter I retype the calibration into each one, by hand. There's no history, no audit, and it takes days. If someone asks how last year's number was produced, I can't really tell them."*
+
+### Step 2 — The inputs become one governed table
+
+Open **`01_inputs`** and click **Run all**. It loads the inputs for **all
+100 entities** into a single table, `sfm_inputs` — the round-numbered entity
+`ENT-001` is exactly the one from the workbook, so we can check the two match
+later. One table, not a hundred files.
+
+### Step 3 — Register the model in Unity Catalog
+
+Open **`02_register_model`** and click **Run all**. This is the heart of the
+use case. It:
+
+- takes the workbook's formulas, written out as a small, readable model;
+- attaches the **2025 calibration** to it; and
+- **registers it in Unity Catalog** as `sfm_scr_model`, version 1, labelled
+  **`@cal_2025`**.
+
+The model has stopped being a file and become a governed asset. See it: left
+sidebar → **Catalog** → `lr_dev_aws_us_catalog` → `actuarial_excel_demo` →
+**Models** → `sfm_scr_model`. You get a version, an owner, a description, and
+full lineage — none of which a spreadsheet has.
+
+### Step 4 — Run the model over the whole group, and check it matches Excel
+
+Open **`03_score`** and click **Run all**. It runs the registered model over
+all 100 entities at once and writes `sfm_results` — with the model version
+stamped on **every row**, so any number traces back to the exact calibration
+that produced it.
+
+The last cell is the **parity check**: for `ENT-001` — the workbook's entity
+— the registered model's SCR matches the Excel workbook to four decimal
+places. Same maths, now governed.
+
+### Step 5 — The 2026 calibration arrives → add a new version
+
+This is the update that used to mean retyping 100 files. Open
+**`04_recalibrate_2026`** and click **Run all**. It:
+
+1. registers **version 2** of the model from the 2026 calibration
+   (labelled **`@cal_2026`**) — same formulas, new parameters;
+2. re-scores all 100 entities with the new version; and
+3. builds `sfm_impact`.
+
+Both versions now exist side by side in Unity Catalog. Nothing was
+overwritten; last year's version is still there, exactly as it was.
+
+### Step 6 — Compare the two versions
+
+`04_recalibrate_2026` finishes by showing `sfm_impact`: the capital change
+from the 2025 → 2026 calibration, **per entity and per risk module**, with
+both versions run over identical inputs. At group level the SCR moves from
+about **£11.4bn to £12.5bn (+9.9%)**.
+
+In the spreadsheet world, producing that comparison is weeks of rework. Here
+it's one table — and because both sides are registered model versions, it's
+permanently reproducible.
+
+### Step 7 (optional) — Run it on a schedule
+
+To show it can run unattended: open `03_score`, top-right, click
+**Schedule → Add schedule**, set it to run (say) monthly, and **Create**.
+The model now scores the group on its own — no one opens a spreadsheet.
+
+Run `99_validate` for an automated all-green check.
+
+---
+
+## What you end up with
+
+| Asset (`sfm_` prefix) | What it is |
 |---|---|
-| Volume `sfm_assets` | all source files, clearly described: workbook, inputs CSV, both calibration JSONs, parity oracle |
-| `sfm_inputs` | inputs table, one row per entity (ENT-001 = the workbook's entity, exactly) |
-| **Model `sfm_scr_model`** | the workbook's formulas as an MLflow pyfunc, **registered in Unity Catalog**; the calibration is logged with the model, so *a model version is a calibration*. Version 1 = `@cal_2025`, version 2 = `@cal_2026`, `@champion` on the latest |
-| `sfm_results` | SCR per entity per calibration year, with `model_version` on every row |
-| `sfm_impact` | v2 vs v1 on identical inputs: the capital impact of the calibration update, per entity, per module |
+| `sfm_inputs` | all 100 entities' inputs, one governed table |
+| **`sfm_scr_model`** | the model, registered in Unity Catalog — v1 `@cal_2025`, v2 `@cal_2026` |
+| `sfm_results` | SCR per entity per version, every row traceable to its calibration |
+| `sfm_impact` | the 2025 → 2026 capital change, per entity and per module |
 
-## The notebooks (flat — open and Run All, in order)
+Plus a model you can share by permission (not by email), full lineage in
+Catalog Explorer, and an optional schedule — none of which a workbook can
+give you.
 
-| Notebook | Does |
-|---|---|
-| `00_setup.py` | `sfm_assets` volume + copies the source files into it (+ `reset=yes` switch) |
-| `01_inputs.py` | inputs CSV → `sfm_inputs`, fully commented |
-| `02_register_model.py` | the model class → log → **register in UC** → aliases (defaults to the 2025 calibration) |
-| `03_score.py` | batch-score all 100 entities with `@cal_2025` → `sfm_results`; **parity check**: ENT-001 equals the workbook |
-| `04_recalibrate_2026.py` | registers **version 2** from the 2026 calibration, re-scores, builds `sfm_impact` — the group-wide capital impact in seconds |
-| `99_validate.py` | smoke test |
+## Bring your own data
 
-## Run it
-
-The notebooks are in the workspace at
-`/Workspace/Shared/actuarial-excel-accelerator/demo_02b_sf_model_uc/`.
-Open the folder and Run All in order: `00 → 01 → 02 → 03 → 04 → 99`.
-No deployment needed.
-
-Widget defaults (`catalog_name`, `schema_name`, `sfm_volume_name`) are set
-for this workspace; change them if you run in another catalog/schema.
-
-## Suggested walkthrough
-
-1. **Open `SF_Model.xlsx`** (download it from the `sfm_assets` volume in
-   Catalog Explorer). Change an input, watch SCR recalc. Point at the
-   `Calibration` tab: "when this changes, someone retypes it in every
-   entity's file."
-2. **Open `02_register_model`.** The same formulas as a readable class;
-   the calibration logged with the model. Show the registered model in
-   Catalog Explorer (→ Models → `sfm_scr_model`): version, aliases,
-   description, lineage — *control and audit for a capital model*.
-3. **Run `03_score`.** One hundred entities in one pass, results
-   traceable via `model_version`. The parity cell: the model equals the
-   workbook to the fourth decimal.
-4. **Run `04_recalibrate_2026`.** The 2026 parameters arrive → version 2
-   → `sfm_impact`: the group SCR moves ~+9%, decomposed by module and by
-   entity. In the workbook world this comparison is weeks of churn; both
-   sides here are registered versions, reproducible forever.
-5. **Mention where this goes next**: scheduled runs, results feeding
-   dashboards and regulatory reporting — see the
-   [Solvency II QRT demo](https://github.com/wryszka/solvency-ii-qrt-demo-pnc)
-   for a fully-implemented pipeline of that shape.
-
-## Bring your own data (the on-ramp, shown in every use case)
-
-The inputs file gets into Databricks in one gesture — no pipeline needed:
-Catalog Explorer → your schema → **Create → Table** → drop
-`sf_inputs.csv` (it's in the `sfm_assets` volume) → the UI infers the
-schema → Create. In this use case `01_inputs` does the same thing in
-code, with explicit types and column comments.
+To run the model on your own entities: left sidebar → **Catalog** →
+your schema → **Create → Table** → drop your inputs CSV → **Create**. Then
+set the `sfm` notebooks' `catalog_name` / `schema_name` widgets to your
+location. `01_inputs` shows the column names the model expects.
 
 ## About this demo
 
 All data is synthetic. The model is a deliberately simplified,
-Solvency-II-*style* standard formula for illustration — it is not the
-EIOPA specification. No customer data is used.
+Solvency-II-*style* Standard Formula for illustration — it is not the EIOPA
+specification. No customer data is used.

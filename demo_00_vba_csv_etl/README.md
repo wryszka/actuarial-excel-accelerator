@@ -57,27 +57,27 @@ find; all data is synthetic.
    `claims_raw_CLEAN.csv` next to the input. *That* clean file is what
    normally gets uploaded onwards.
 
-> **Say this:** "This runs every month. It's slow, it's on my laptop, and
-> honestly I'm not 100% sure what it does inside."
+**Say this:** *"This runs every month. It's slow, it's on my laptop, and honestly I'm not 100% sure what it does inside."*
 
 ### Step 2 — Ask what the code actually does
 
 1. In Excel, open the code: **Developer → Visual Basic** (or Alt/Option +
    F11). Select all the code in `ClaimsBordereauETL` and copy it.
 2. In Databricks, open a notebook cell and open **Genie Code** (the
-   assistant). Paste the code and ask:
-   > *This is a VBA macro we run every month and nobody fully understands it.
-   > Explain step by step what it does, and flag anything risky.*
+   assistant). Paste the code and ask (copy this line):
+
+   *This is a VBA macro we run every month and nobody fully understands it. Explain step by step what it does, and flag anything risky.*
+
 3. Read the answer. It explains the dedupe, the date parsing, the money
    tidy-up — and flags the thing nobody knew: **rows with an unreadable
    loss date are silently dropped.** You've been losing claims for years.
 
 ### Step 3 — Turn it into a Databricks notebook
 
-1. Ask Genie Code the follow-up:
-   > *Rewrite this as a Databricks notebook in PySpark that does the same
-   > thing on a claims CSV, and instead of silently dropping the bad-date
-   > rows, keep them in a separate quarantine table.*
+1. Ask Genie Code the follow-up (copy this line):
+
+   *Rewrite this as a Databricks notebook in PySpark that does the same thing on a claims CSV, and instead of silently dropping the bad-date rows, keep them in a separate quarantine table.*
+
 2. It writes the code. We've saved the finished, checked version as
    **`01_clean_claims`** — open it. Each section is one rule from the macro,
    labelled, so you can see the old logic mapped across.
