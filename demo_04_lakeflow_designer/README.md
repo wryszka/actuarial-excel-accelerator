@@ -9,8 +9,9 @@ desktop ETL tool (Alteryx, Power Query, KNIME) running on someone's laptop.
 Here you build the same thing on a visual canvas in **Lakeflow Designer** —
 but the output is a governed table in Unity Catalog, the flow is real code
 behind the scenes, lineage is automatic, and one click turns it into a
-scheduled production job. You move from an uncontrolled, per-seat tool to a
-fully governed platform — and the code is written *for* you.
+scheduled production job. You move from a workflow that lives on one
+person's machine to one that lives on a governed platform — and the code is
+written *for* you.
 
 ## What you'll build
 
@@ -48,9 +49,9 @@ Open the folder and run them in order — no deployment needed.
 Run `00_setup`, then `01_generate_sources`. This creates the three source
 tables, the benchmark, and the Excel extract in the `dsg_landing` volume.
 
-Framing for a live audience: *"This blend runs in a desktop ETL tool today —
-on somebody's machine, under a per-seat licence, with no lineage, and the
-output gets emailed around."*
+Framing for a live audience: *"This blend runs in a desktop tool today — on
+somebody's machine, with no lineage, and the output gets emailed around. If
+that person's away, it doesn't run."*
 
 ### 2. Build the canvas
 
@@ -152,7 +153,8 @@ Then the payoff — three things a desktop ETL tool can't do:
 - **Governed and automatic.** Catalog Explorer → `dsg_experience` →
   **Lineage** walks back to the sources, so "where did this number come
   from" is answered by the platform. And **Schedule** turns the canvas into
-  a monitored monthly job — no workflow server, no seat licence.
+  a monitored monthly job that runs itself — no more "did someone remember
+  to run it?".
 
 Run `99_validate` for the smoke test (it reports the canvas output as
 pending until you've built it once).

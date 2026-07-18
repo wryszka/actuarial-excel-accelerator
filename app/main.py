@@ -144,7 +144,7 @@ SCENARIOS = [
                 "governed, with real code behind it, provably equal to a coded pipeline.",
         "steps": [
             "The 'before': the monthly blend built as a drag-and-drop canvas on someone's "
-            "desktop — a per-seat licence, no lineage, output emailed around.",
+            "desktop — no lineage, output emailed around, and it stops if they're away.",
             "In Lakeflow Designer, add the source tables (claims, premium, the segment "
             "lookup) — or drag a CSV straight onto the canvas.",
             "Build the blend visually: join claims to the lookup (the VLOOKUP), aggregate by "
