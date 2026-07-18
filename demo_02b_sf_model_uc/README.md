@@ -1,5 +1,7 @@
 # Use Case 2 — Move a capital model out of the spreadsheet
 
+![Use Case 2 flow](https://raw.githubusercontent.com/wryszka/actuarial-excel-accelerator/main/docs/img/uc2_flow.png)
+
 ## The problem
 
 A lot of actuarial models live in a single Excel workbook: a Solvency II
@@ -31,29 +33,19 @@ impact of that update takes seconds, not weeks.
 You will never touch a command line. Everything is done by opening a notebook
 and clicking **Run all**.
 
-## The picture
-
-```
-   SF_Model.xlsx  ──▶  one entity, live formulas          the "before"
-   (Inputs / Calibration / Model tabs)                    one file per entity
-
-        move the formulas into a notebook, register as a model
-                              │
-                              ▼
-   sfm_inputs (100 entities) ─▶ sfm_scr_model  ─▶ sfm_results  ─▶ sfm_impact
-                               v1 = @cal_2025      one row per       2026 vs 2025
-                               v2 = @cal_2026      entity+version     capital change
-```
-
 Everything in Databricks is prefixed **`sfm_`** so it's easy to find; all
 data is synthetic.
 
 ## Before you start (once)
 
-- **Find the notebooks in Databricks:** left sidebar → **Workspace** →
-  `Shared` → `actuarial-excel-accelerator` → `demo_02b_sf_model_uc`. You'll
-  see `00_setup`, `01_inputs`, `02_register_model`, `03_score`,
-  `04_recalibrate_2026`, `99_validate`.
+> **New here?** Read the one-page **Start here** tab of the demo guide first
+> — where the notebooks live, what "Run all" means, and how to bring your own
+> data. Every use case shares that setup; it isn't repeated here.
+
+- **Find the notebooks:** left sidebar → **Workspace** → `Shared` →
+  `actuarial-excel-accelerator` → `demo_02b_sf_model_uc` (`00_setup`,
+  `01_inputs`, `02_register_model`, `03_score`, `04_recalibrate_2026`,
+  `99_validate`).
 - **Run `00_setup` once.** Open it, click **Run all** at the top. It creates
   the `sfm_assets` folder, copies in the source files (the workbook, the
   inputs, the two calibrations), and loads the inputs table. (~1 minute.)
@@ -158,12 +150,9 @@ Plus a model you can share by permission (not by email), full lineage in
 Catalog Explorer, and an optional schedule — none of which a workbook can
 give you.
 
-## Bring your own data
-
-To run the model on your own entities: left sidebar → **Catalog** →
-your schema → **Create → Table** → drop your inputs CSV → **Create**. Then
-set the `sfm` notebooks' `catalog_name` / `schema_name` widgets to your
-location. `01_inputs` shows the column names the model expects.
+(To run the model on your own entities, see **Bring your own data** on the
+demo guide's *Start here* tab; `01_inputs` shows the columns the model
+expects.)
 
 ## About this demo
 

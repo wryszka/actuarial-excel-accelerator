@@ -1,5 +1,7 @@
 # Use Case 4 — The monthly blend, without the desktop ETL tool
 
+![Use Case 4 flow](https://raw.githubusercontent.com/wryszka/actuarial-excel-accelerator/main/docs/img/uc4_flow.png)
+
 Every insurance analyst knows this workflow: pull a few extracts, join and
 clean them, aggregate to a summary, send it out — every month, usually in a
 desktop ETL tool (Alteryx, Power Query, KNIME) running on someone's laptop.
@@ -160,12 +162,9 @@ line_of_business"* and *"line chart of loss_ratio by accident_year, one line
 per line_of_business"*. **Publish** and share the link — a live dashboard on
 the same governed table, no extra pipeline. (Use Case 3 goes deeper on this.)
 
-## Bring your own data
-
-Getting your own extract into Databricks is one gesture: Catalog Explorer →
-your schema → **Create → Table** → drop the CSV → the UI infers the schema →
-Create. Or, on the canvas here, drag the file straight on and it becomes a
-source.
+(To use your own extract, see **Bring your own data** on the demo guide's
+*Start here* tab — or, on the canvas here, drag the file straight on and it
+becomes a source node.)
 
 ## About this demo
 

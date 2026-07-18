@@ -1,106 +1,170 @@
-# Use Case 3 — Ad-hoc analytics: from Excel pivots to Genie & AI/BI
+# Use Case 3 — From Excel BI to Genie and dashboards
 
-**The act everyone recognises:** a claims listing lands in Excel, and the
-ad-hoc questions start — claims by line of business and status, average
-severity by region, the ten largest open claims, the monthly trend, and a
-chart for the pack. **What it becomes:** the same table, already governed
-in Databricks, answered in plain English with **Genie** and published to
-the whole company as a live **AI/BI dashboard** — then extended with more
-tables for the analysis Excel could never hold.
+![Use Case 3 flow](https://raw.githubusercontent.com/wryszka/actuarial-excel-accelerator/main/docs/img/uc3_flow.png)
 
-Two acts, one message: *ad-hoc BI doesn't need a workbook.*
+## The problem
 
-## The data (already in the lakehouse)
+Most day-to-day insurance reporting still happens in Excel. The routine is
+always the same: pull an extract from the data warehouse as a CSV, open it,
+and build the pivots — claims by line of business and status, average
+severity by region, the ten largest open claims, a monthly trend, a chart
+for the pack. It works for a while, but:
 
-A synthetic UK general-insurance book: ~766k claim transactions across
-accident years 2019–2025, 5 lines of business × 5 regions × 4 channels,
-built by notebooks `00`–`04`. All assets are prefixed **`exp_`** in the
-shared schema. Three signals are deliberately baked in (Motor 2022–23
-deterioration, a Scotland 2023 windstorm, the Aggregator channel running
-hot) so the analysis *finds* something.
+- **It's one slice, one moment.** The extract is a snapshot; by tomorrow
+  it's stale, and the next question means another extract.
+- **It doesn't scale.** A single month of one line of business is fine.
+  The whole book — millions of rows — won't open, or grinds Excel to a halt.
+- **It's manual and personal.** Every refresh is hand-built, and the result
+  is a workbook on one laptop that gets emailed around in copies.
+- **It can't really be shared or automated.** No single live version
+  everyone sees, and no way to have it just refresh itself.
 
-| Table | Grain | Used in |
-|---|---|---|
-| `exp_claims_listing` | one row per claim (~146k) | **act 1** — the relatable table |
-| `exp_gold_experience` | LOB × region × channel × accident year (premium, incurred, loss ratio) | act 2 |
-| `exp_gold_triangle` | LOB × accident year × development month | act 2 |
-| `exp_dim_segment` | segment → LOB/region/channel | act 2 |
+## How we solve it
 
-## Bring your own data (the on-ramp, shown in every use case)
+We take **the same data** — already sitting in Databricks as a governed
+table (far bigger than Excel could open) — and do the analysis two better
+ways: ask questions in plain English with **Genie**, and publish a live
+**AI/BI dashboard** the whole company sees. No pivots to rebuild, no file to
+email, and it works on the full book, not a slice.
 
-The extract you'd pivot in Excel gets into Databricks in one gesture —
-no pipeline required:
+You will never touch a command line. Everything is done by opening a
+notebook and clicking **Run all**, or clicking in the Databricks UI.
 
-1. Catalog Explorer → your schema → **Create → Table**.
-2. Drop the CSV (e.g. `claims_extract_motor_ay2024.csv` from the
-   `exp_landing` volume — the same file the Excel act uses).
-3. The UI infers the schema; click Create. It's now a governed table you
-   can query, comment, share — and point Genie at.
+Everything in Databricks is prefixed **`exp_`** so it's easy to find; all
+data is synthetic.
 
-In this use case the full tables are already in the lakehouse (built by
-the notebooks); the upload gesture is there to show how *your* file joins
-them.
+## Before you start (once)
 
-## Run it
+> **New here?** Read the one-page **Start here** tab of the demo guide first
+> — it covers where the notebooks live, what "Run all" means, and how to
+> bring your own data. Every use case shares that setup; it isn't repeated
+> in each one.
 
-The notebooks are in the workspace at
-`/Workspace/Shared/actuarial-excel-accelerator/demo_03_experience_genie/`.
-Open the folder and run them in order — no deployment needed.
+- **Find the notebooks:** left sidebar → **Workspace** → `Shared` →
+  `actuarial-excel-accelerator` → `demo_03_experience_genie`.
+- **Build the data once.** Open and **Run all** on each, in order:
+  `00_setup` → `01_generate_data` → `02_bronze` → `03_silver` → `04_gold` →
+  `08_claims_listing`. This creates the tables the analysis uses (a synthetic
+  UK general-insurance book: ~766k claim transactions, 2019–2025, 5 lines of
+  business × 5 regions × 4 channels). ~5 minutes total.
 
-World build (once): `00_setup` → `01_generate_data` → `02_bronze` →
-`03_silver` → `04_gold`. Then the use case itself:
-
-| Notebook | Does |
+| Table (`exp_` prefix) | What it is |
 |---|---|
-| `08_claims_listing.py` | builds `exp_claims_listing` + writes the Excel extract (Motor AY2024) to the volume |
-| `09_genie_starter.py` | `mode=create_starter`: Genie space over **one table**. `mode=extend`: adds the three portfolio tables |
-| `10_dashboard_starter.py` | the starter dashboard on the claims listing — **published, shared with all users** |
-| `05_parity.py` / `06_genie_space.py` / `07_dashboard.py` | the deeper portfolio layer: pipeline parity, the full experience Genie space and the portfolio dashboard (act 2's destination) |
-| `99_validate.py` | smoke test |
+| `exp_claims_listing` | one row per claim (~146k) — the relatable, pivot-style table |
+| `exp_gold_experience` | premium, incurred and loss ratio by segment × year |
+| `exp_gold_triangle` | claims development by line of business × year |
+| `exp_dim_segment` | the segment → line of business / region / channel lookup |
 
-## Suggested walkthrough
+---
 
-**Act 0 — Excel, the familiar ritual (2 min).**
-Download `claims_extract_motor_ay2024.csv` from the `exp_landing` volume.
-Open in Excel. Build the classic pivot: rows = region, columns = status,
-values = count + sum of incurred. Sort for the largest claims. Make the
-chart. This is comfortable — and it's one line of business, one year,
-one person's copy, stale the moment it's saved.
+## The walkthrough
 
-**Act 1 — the same analytics, modern (5 min).**
-1. Show the *same data* as a governed table: Catalog Explorer →
-   `exp_claims_listing` (column comments, owner, lineage). Mention the
-   one-gesture upload path above for bringing your own file.
-2. **Genie, quick setup**: run `09_genie_starter` (or click through the
-   UI: New Genie space → pick the table → done). Ask the Excel questions
-   in English:
-   - *How many claims do we have by line of business and status?*
-   - *What is the average incurred cost per claim by region?*
-   - *Show the ten largest open claims.*
-   - *Plot the number of reported claims by month in 2024.*
-   Click **Show code** on one answer — the SQL is right there.
-3. **The dashboard**: run `10_dashboard_starter` — the pivot pack as a
-   live page (KPIs, incurred by LOB, monthly trend, region × status,
-   top-10 open). It's **published and shared with every workspace user**:
-   send the link, nobody emails a workbook.
+### Step 1 — BI in Excel today (the "before")
 
-**Act 2 — beyond what Excel could hold (5 min).**
-1. Re-run `09_genie_starter` with `mode = extend` (or add the tables in
-   the Genie UI — Configure → Data → Add table): the space now also knows
-   premium, loss ratios and development.
-2. Ask the questions one table couldn't answer:
-   - *What is the loss ratio by line of business and accident year? Plot it.*
-   - *Why is Motor 2023 worse than 2021 — break it down by region and channel.*
-   - *Which distribution channel runs the highest loss ratio?*
-3. Open the portfolio dashboard (*Demo 3 — Portfolio Experience
-   Monitoring*, from `07_dashboard`): the whole 766k-transaction book,
-   live — Motor deteriorating, Scotland's 2023 spike, Aggregator running
-   hot. The full book physically does not fit in Excel; here it's just
-   another page.
-4. Close with `05_parity` if trust comes up: the pipeline's numbers tie
-   back to the Excel-sized slice to the penny.
+1. Get the extract, the way you do now: download
+   `claims_extract_motor_ay2024.csv` — left sidebar → **Catalog** →
+   `lr_dev_aws_us_catalog` → `actuarial_excel_demo` → Volumes →
+   `exp_landing` → click the file → **Download**. (In real life this is a
+   CSV pulled from the data warehouse.)
+2. Open it in Excel and build the usual pivot: rows = **region**, columns =
+   **status**, values = **count of claims** and **sum of incurred**. Sort
+   for the largest claims. Add a chart.
+
+**Say this:** *"This is how we do BI today. But it's one line of business, one year, one snapshot — and it's my personal copy, out of date the moment I save it."*
+
+**"Yes, but can't we do this better?"** — the three questions everyone asks:
+
+- *What if the file is much bigger?* This slice is one line of business for
+  one year. The **whole book is millions of rows** — Excel won't open it.
+- *What if I want a different cut?* Every new question is a new pivot, by
+  hand. Wouldn't it be faster to just *ask*?
+- *How do others see it, and can it refresh itself?* Today it's a workbook
+  emailed around. There's no single live version, and nothing automatic.
+
+Databricks answers all three. On to it.
+
+### Step 2 — The same data, already a table (and much bigger)
+
+The exact same claims data is already in Databricks as
+**`exp_claims_listing`** — but the *whole book*, ~146k claims, not the
+one-year slice. See it: left sidebar → **Catalog** → `lr_dev_aws_us_catalog`
+→ `actuarial_excel_demo` → `exp_claims_listing`. Note the column comments,
+the owner, and the **Lineage** tab — this is a governed table, not a file.
+
+> **The point:** nothing was uploaded for this step. The data already lives
+> here; the Excel extract was just a small copy of it.
+
+### Step 3 — Ask questions in plain English with Genie
+
+1. Open **`09_genie_starter`** and click **Run all**. It creates a **Genie
+   space** over that one table — the quick-setup moment. (You can also do it
+   by hand: left sidebar → **Genie** → **New** → pick `exp_claims_listing`.)
+2. Open the space (the notebook prints the link) and type the same questions
+   you'd have built pivots for — one at a time:
+
+   *How many claims do we have by line of business and status?*
+
+   *What is the average incurred cost per claim by region?*
+
+   *Show the ten largest open claims.*
+
+   *Plot the number of reported claims by month in 2024.*
+
+3. On any answer, click **Show code** — Genie shows the SQL it wrote. The
+   analyst asked in English; the platform did the query.
+
+### Step 4 — Publish a dashboard everyone can see
+
+Open **`10_dashboard_starter`** and click **Run all**. It builds an **AI/BI
+dashboard** on the same table — the pivot pack as a live page (headline
+numbers, incurred by line of business, the monthly trend, claims by region
+and status, the ten largest open claims) — and **publishes it, shared with
+everyone in the workspace**. Send the link; nobody emails a workbook, and
+everyone sees the same live numbers.
+
+### Step 5 — Go beyond what Excel could hold
+
+Now the payoff for "what if it's bigger / a different cut". Open
+**`09_genie_starter`** again, set the `mode` widget (top of the notebook) to
+**`extend`**, and **Run all**. The Genie space now also knows premium, loss
+ratios and claims development — so you can ask questions a single pivot never
+could, across the full book:
+
+*What is the loss ratio by line of business and accident year? Plot it.*
+
+*Why is Motor 2023 worse than 2021 — break it down by region and channel.*
+
+*Which distribution channel has the highest loss ratio?*
+
+Genie finds the story in seconds — here, Motor deteriorating in 2022–23, a
+Scotland spike in 2023, and one distribution channel running hot.
+
+Run `99_validate` for an automated all-green check.
+
+---
+
+## What you end up with
+
+| Asset | What it is |
+|---|---|
+| `exp_claims_listing` | the claims table Genie and the dashboard read |
+| **Genie space** | ask the book questions in plain English — no pivots |
+| **AI/BI dashboard** | the pack as a live page, published to everyone |
+
+No workbook to refresh, no file to email, and it works on the full book, not
+a one-year slice.
+
+## Common questions
+
+- **"Do I have to write SQL?"** No. Genie takes plain English; the dashboard
+  is built for you. "Show code" is there if you're curious.
+- **"Is this the real data or a copy?"** The real governed table — the Excel
+  extract in step 1 was the copy. Everyone querying Genie or the dashboard
+  sees the one live source.
+- **"How big can it go?"** Far past Excel. This book is ~766k transactions;
+  the same approach works on billions of rows.
 
 ## About this demo
 
-All data is synthetic — the book resembles a UK general-insurance
-portfolio but every value is fabricated. No customer data is used.
+All data is synthetic — the book resembles a UK general-insurance portfolio
+but every value is fabricated. No customer data is used.

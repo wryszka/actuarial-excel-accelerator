@@ -1,5 +1,9 @@
 # Use Case 1 — Move an Excel macro to Databricks
 
+![Use Case 1 flow](https://raw.githubusercontent.com/wryszka/actuarial-excel-accelerator/main/docs/img/uc1_flow.png)
+
+## The problem
+
 Every month an actuary receives a claims listing as a CSV, opens Excel, and
 runs an old macro that cleans it up — parses the dates, tidies the numbers,
 works out incurred, flags the big losses — and saves a clean file for the
@@ -13,34 +17,31 @@ same file — **done in seconds, not minutes** — schedule it to run every
 morning by itself, and prove the numbers match Excel to the penny.
 
 If you've never opened Databricks, that's the point — this is written for
-you. Follow the steps in order.
+you. Follow the steps in order. Everything in Databricks is named with a
+**`brd_`** prefix so it's easy to find; all data is synthetic.
 
-## The picture
+## How we solve it
 
-```
-   claims_raw.csv                 ClaimsBordereauETL.xlsm (the old macro)
-   (200k messy rows)   ──────────▶  clean + enrich, row by row  ──▶  *_CLEAN.csv
-        │                                                              │
-        │  upload to Databricks                                        │ load back to compare
-        ▼                                                              ▼
-   brd_claims_raw  ──▶  01_clean_claims (the same rules, in seconds)  ──▶  brd_claims_clean
-                                                                    reconcile: same to the penny
-```
-
-Everything in Databricks is named with a **`brd_`** prefix so it's easy to
-find; all data is synthetic.
+You'll paste the old macro code into an assistant that explains it and
+rewrites it as a notebook, run the new version over the same file — **done
+in seconds, not minutes** — schedule it to run every morning by itself, and
+prove the numbers match Excel to the penny.
 
 ## Before you start (once)
+
+> **New here?** Read the one-page **Start here** tab of the demo guide first
+> — where the notebooks live, what "Run all" means, and how to bring your own
+> data. Every use case shares that setup; it isn't repeated here.
 
 - **Build the Excel workbook** so you have the "before" to show: open
   `excel/ClaimsBordereauETL.xlsx`, add a sheet named `Clean`, import
   `excel/ClaimsBordereauETL.bas` in the VBA editor, and save as
   `ClaimsBordereauETL.xlsm`. Full steps in `excel/VBA_SPEC.md`.
-- **Find the notebooks** in Databricks: left sidebar → **Workspace** →
-  `Shared` → `actuarial-excel-accelerator` → `demo_00_vba_csv_etl`. You'll
-  see `00_setup`, `01_clean_claims`, `02_reconciliation`, `99_validate`.
-- **Run `00_setup` once.** Open it and click **Run all** at the top. It
-  creates the folder and loads the raw CSV into a table. (~1 minute.)
+- **Find the notebooks:** left sidebar → **Workspace** → `Shared` →
+  `actuarial-excel-accelerator` → `demo_00_vba_csv_etl` (`00_setup`,
+  `01_clean_claims`, `02_reconciliation`, `99_validate`).
+- **Run `00_setup` once** (open it, **Run all**) — it loads the raw CSV into
+  a table. (~1 minute.)
 
 ---
 

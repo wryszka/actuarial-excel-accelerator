@@ -31,13 +31,30 @@ independently.
   the Excel original — to the penny — before asking anyone to trust it.
 - **Synthetic data throughout**; no customer names or data anywhere.
 
-## Where the notebooks live
+## Start here — the setup every use case shares
 
-The notebooks are already in the workspace at
+Read this once; the individual use cases don't repeat it.
+
+**Where the notebooks live.** They're already in the workspace at
 `/Workspace/Shared/actuarial-excel-accelerator/` — one flat folder per use
-case. Open the folder for the use case you want and run the notebooks in
-order; each use case is independent, so you can run just one. No
-deployment needed.
+case (`demo_00_vba_csv_etl`, `demo_02b_sf_model_uc`, `demo_03_experience_genie`,
+`demo_04_lakeflow_designer`). Find them: left sidebar → **Workspace** →
+`Shared` → `actuarial-excel-accelerator`. Each use case is independent — run
+just the one you want.
+
+**How to run a notebook.** Open it and click **Run all** at the top. That's
+the only "running" you need to do — no command line anywhere.
+
+**Where the data and files live.** Each use case keeps its source files
+(Excel workbooks, CSVs) in a **volume** — a folder in Databricks. Find them:
+left sidebar → **Catalog** → `lr_dev_aws_us_catalog` → `actuarial_excel_demo`
+→ **Volumes**. Click a file to download it.
+
+**Bring your own data (once, applies everywhere).** To run any use case on
+your own file instead of the built-in data: left sidebar → **Catalog** →
+your schema → **Create → Table** → drop your CSV → the UI reads the columns →
+**Create**. It's now a governed table you can point the notebooks at. The
+built-in demo tables already exist, so this is optional.
 
 Only if you are setting this up in a **fresh workspace** of your own:
 
