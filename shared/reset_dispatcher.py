@@ -11,6 +11,7 @@
 # MAGIC | `uc2` | use case 2: drop `sfm_` tables, re-copy volume files (model versions kept by design) | ~1 min |
 # MAGIC | `uc3` | use case 3: full world regen (data → bronze → silver → gold → listing), Genie space back to the single-table starter, dashboards re-published | ~15 min |
 # MAGIC | `uc4` | use case 4: rebuild the Designer source tables, drop the canvas output | ~2 min |
+# MAGIC | `uc5` | use case 5: re-create the month-end pipeline job (idempotent) | ~1 min |
 # MAGIC | `all` | all four, in order | ~20 min |
 # MAGIC
 # MAGIC Everything it calls is idempotent.
@@ -20,7 +21,7 @@
 dbutils.widgets.text("catalog_name", "lr_dev_aws_us_catalog")
 dbutils.widgets.text("schema_name", "actuarial_excel_demo")
 dbutils.widgets.text("warehouse_id", "a3b61648ea4809e3")
-dbutils.widgets.dropdown("scenario", "all", ["uc1", "uc2", "uc3", "uc4", "all"])
+dbutils.widgets.dropdown("scenario", "all", ["uc1", "uc2", "uc3", "uc4", "uc5", "all"])
 
 catalog = dbutils.widgets.get("catalog_name")
 schema = dbutils.widgets.get("schema_name")
@@ -71,9 +72,14 @@ def reset_uc4():
         {"dsg_volume_name": "dsg_landing"})
 
 
+def reset_uc5():
+    # no data of its own — just re-create the (idempotent) pipeline job
+    run("../demo_05_orchestration/01_create_pipeline_job")
+
+
 ACTIONS = {"uc1": [reset_uc1], "uc2": [reset_uc2], "uc3": [reset_uc3],
-           "uc4": [reset_uc4],
-           "all": [reset_uc1, reset_uc2, reset_uc3, reset_uc4]}
+           "uc4": [reset_uc4], "uc5": [reset_uc5],
+           "all": [reset_uc1, reset_uc2, reset_uc3, reset_uc4, reset_uc5]}
 
 for fn in ACTIONS[scenario]:
     fn()

@@ -158,6 +158,34 @@ SCENARIOS = [
         ],
         "reset_note": "Rebuilds the canvas source tables and drops the canvas output (~2 min).",
     },
+    {
+        "id": "uc5",
+        "n": 5,
+        "title": "Connect it all — one scheduled pipeline",
+        "strap": "The month-end checklist, still run by hand in someone's head.",
+        "wow": "One Lakeflow Job chains clean → model → report and runs them in order, on a "
+               "schedule — the whole month-end, unattended, with no spreadsheet and no manual "
+               "steps. This is the finale that ties Use Cases 1–3 into one flow.",
+        "folder": f"{FOLDER}/demo_05_orchestration",
+        "doc_tab": os.getenv("DOC_TAB_UC5", "t.1devka9ward9"),
+        "youtube": os.getenv("YT_UC5", ""),
+        "tables": [],
+        "does": "Connects the earlier use cases into a single scheduled pipeline: a Lakeflow "
+                "Job that runs clean (UC1) → model (UC2) → report (UC3) in order, unattended.",
+        "steps": [
+            "The 'before': even off Excel, someone still runs the monthly steps by hand, in "
+            "order — a checklist that lives in one person's head.",
+            "Run 01_create_pipeline_job — it builds a Lakeflow Job that chains the three "
+            "notebooks (clean → model → report) with task dependencies.",
+            "Open the job: each task waits for the one before it to succeed — the month-end "
+            "checklist, drawn as a pipeline the platform enforces.",
+            "Run it once with Run now and watch the tasks light up end to end.",
+            "Add a monthly schedule — now the whole flow runs on its own, logged, stopping "
+            "safely if any step fails.",
+        ],
+        "job_name": "Excel Accelerator — Month-end pipeline",
+        "reset_note": "Re-creates the pipeline job (idempotent) (~1 min).",
+    },
 ]
 
 app = FastAPI(title="Excel Accelerator")
@@ -206,7 +234,15 @@ def _compute_status():
                 w().registered_models.get(full_name=sc["model"])
             except Exception:
                 ok, detail = False, (detail + " · model missing").lstrip(" ·")
+        if sc.get("job_name"):
+            j = next(iter(w().jobs.list(name=sc["job_name"])), None)
+            ok, detail = (bool(j), "ready" if j else "job not created yet")
         links = []
+        if sc.get("job_name"):
+            j = next(iter(w().jobs.list(name=sc["job_name"])), None)
+            if j:
+                links.append({"label": "Month-end pipeline job", "kind": "job",
+                              "href": f"{host}/jobs/{j.job_id}"})
         if sc.get("genie_title") and genie.get(sc["genie_title"]):
             links.append({"label": "Genie space", "kind": "genie",
                           "href": f"{host}/genie/rooms/{genie[sc['genie_title']]}"})
@@ -240,7 +276,7 @@ def _reset_job_id():
 
 @app.post("/api/reset/{scenario}")
 def reset(scenario: str):
-    if scenario not in {"uc1", "uc2", "uc3", "uc4", "all"}:
+    if scenario not in {"uc1", "uc2", "uc3", "uc4", "uc5", "all"}:
         raise HTTPException(400, "unknown scenario")
     job_id = _reset_job_id()
     if not job_id:
