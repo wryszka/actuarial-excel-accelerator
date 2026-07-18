@@ -1,219 +1,153 @@
-# Recording Plan — Actuarial Excel Accelerator video series
+# Recording plan — Bricksurance channel
 
-Four short external-facing videos (~4–5 min each), one per migration
-scenario. Everything is recorded live in a Databricks workspace and in
-Excel — no slides beyond the end card, no customer names, synthetic data
-throughout.
+Six videos: one 60–90s **trailer** that tells the whole arc, then one
+**chapter** per use case. Scene lists only — no talk track (you speak to
+each scene). Recorded live in Databricks + Excel, no customer names, all
+synthetic data. Target **3–4 minutes** per chapter; the trailer under 90s.
 
-| # | Video | Scenario | The wow moment |
-|---|---|---|---|
-| 1 | *The VBA nobody understands* | Claims-bordereau macro (demo 0) | Genie Code explains 12-year-old VBA and reveals it's been silently dropping claims; then the file lands and the pipeline fires itself |
-| 2 | *The model leaves the spreadsheet* | SCR Standard Formula → MLflow (demo 2A) | Type a shock in Excel → Databricks computes SCR → answer lands back in the cell |
-| 3 | *Stop emailing the actuary* | Experience analytics → Genie + AI/BI (demo 3) | Ask Genie "why is Motor 2023 worse?" and watch it drill to the answer over a 766k-row book Excel can't open |
-| 4 | *Build the next one yourself* | Lakeflow Designer on the demo 3 CSVs | An analyst rebuilds the pipeline visually — no code, same governed numbers |
+**Golden rules for video (different from doing it live):**
+- **No dead air.** Anything that takes more than ~5s to run is a hard cut,
+  a speed-ramp, or filmed pre-warmed. Never show a progress bar.
+- **Nothing appears from nowhere.** Do all prep off-camera; on screen,
+  every asset should have been introduced.
+- **Warm everything first.** Pre-run Genie questions, open dashboards once,
+  pre-build the Excel workbook and the Designer canvas. The camera only
+  sees the good take.
+- **Open and close on the app** (the tiled landing page) as "home base".
+- **Use the flow PNGs** (`docs/img/uc*_flow.png`) as title cards / transitions.
 
-**Recording order: 3 → 2 → 1 → 4** (3 is fully verified today; 1 and 4
-carry prep work).
-
-**Shared story spine** (repeat in every video, ≤20s): the 6-step recipe —
-*Inventory → Decompose → Land → Rebuild → Validate parity → Operate* —
-with this video's steps highlighted. The message is never "Excel is bad";
-it is *"Excel stays as a window — it stops being the database, the ETL
-engine and the model host."*
+**Record in this order** (easiest/strongest first): UC1 → UC3 → UC5 → UC2
+→ UC4. Cut the trailer last, from the best moments.
 
 ---
 
-## Common production checklist (before every session)
+## Trailer (60–90s) — "Everything you do in Excel, on one platform"
 
-1. **Browser hygiene**: fresh profile/window; hide bookmarks bar; close
-   all tabs except the workspace; workspace theme light; zoom 110–125%.
-2. **Workspace hygiene**: record on a workspace containing only demo
-   assets. All accelerator assets live at
-   `/Workspace/Shared/actuarial-excel-accelerator/` — pin that folder.
-   No user emails on screen where avoidable (collapse the sidebar
-   account chip; crop in edit otherwise).
-3. **State reset**: each run sheet below has a *Reset* step. Do a full
-   dry run the day before — Genie answers especially.
-4. **Excel**: close all other workbooks; hide the ribbon's personal
-   account name (Excel → Preferences → General → personalize turned off).
-5. **Capture**: 1080p minimum (4K preferred, downscale), 16:9, system
-   cursor highlight on clicks, no notification popups (Do Not Disturb).
-6. **End card** (same design all four): recipe diagram + repo URL +
-   *"About this demo: all data is synthetic; no customer data is used."*
+1. Montage, 2s each: an Excel macro grinding · a wall of pivot tables · a
+   folder full of near-identical workbooks · a desktop ETL canvas.
+2. Cut to the app landing page (the five tiles).
+3. Five 6-second beats, one per chapter — the *after* shot of each:
+   Genie Code explaining VBA · the registered model's versions · Genie
+   drawing a chart from a typed question · the Designer canvas · the
+   pipeline graph going green.
+4. End card: the whole-journey diagram + channel handle.
 
 ---
 
-## Video 3 — *Stop emailing the actuary* (record first)
+## Chapter 1 — The macro nobody understands  ★ record first, best reveal
 
-Assets: `demo_03_experience_genie/`. Everything verified end-to-end.
+*Assets: `demo_00_vba_csv_etl`. Pre-build the `.xlsm` off-camera.*
 
-**Reset / pre-flight**
-1. Run `99_validate` → all checks PASS.
-2. Open the AI/BI dashboard once so caches are warm
-   (*Demo 3 — Portfolio Experience Monitoring*).
-3. Open the Genie space (*Experience Monitoring — Actuarial Excel
-   Accelerator*) and dry-run the three questions below; pin them as
-   sample questions in the space if not already.
-4. Open `excel/Experience_Monitoring.xlsx` locally, on the
-   `Pivot_Experience` tab.
+1. **Cold open (Excel).** The claims CSV open — messy dates, `£` signs.
+   Then the macro editor: scroll the wall of old VBA for 3s.
+2. **Run the macro — CUT.** Show it start, then hard-cut to "done" (or
+   speed-ramp). Never show the 90s grind; the slowness is told in the edit.
+3. **The reveal (Databricks).** Paste the VBA into Genie Code; the
+   explanation appears and flags *"silently drops rows with bad dates."*
+   Hold on that line — this is the hero moment.
+4. **The rewrite.** Genie Code returns the notebook; quick scroll of the
+   labelled rule-by-rule cells.
+5. **Run it — seconds.** `01_clean_claims` Run all; the result table fills
+   near-instantly. The visual opposite of scene 2.
+6. **Proof.** `02_reconciliation` tie-out table (all ✓) + the quarantine
+   rows Excel had been dropping.
+7. **Close.** The Schedule dialog set to daily → back to the app tile.
 
-**Run sheet**
-1. **Cold open — the pain (45s).** Excel full screen. Show the pivot,
-   the red "REFRESH MONTHLY … ~half a day" note, flick to `Data_Claims`
-   (20k rows) and `Lookup` (the VLOOKUP tab). Say the numbers: this
-   workbook holds *one line of business, one region, one year*. The
-   full book is ~800,000 transaction rows — Excel tops out at ~1.05M
-   rows and grinds long before.
-2. **The process (60s).** Switch to the workspace folder
-   `demo_03_experience_genie/`. Scroll the folder: numbered notebooks
-   `00`→`99`, each header names its recipe step. Open `04_gold` briefly:
-   point at the table/column comments — "this documentation is what
-   makes Genie work". Then Catalog Explorer → schema
-   `actuarial_excel_demo` → filter `exp_` → open `exp_gold_experience`,
-   show column comments + lineage tab.
-3. **The dashboard (60s).** Open the published dashboard. Walk the KPI
-   row (earned premium, incurred, blended loss ratio, large-loss).
-   Point at the LOB line chart — Motor climbing 2022→2023. Bar charts:
-   Aggregator hottest channel; Scotland region spike. Cross-filter by
-   clicking Motor. "This is the board pack. Nobody refreshes it."
-4. **Genie (90s — the headline).** Open the Genie space. Ask, in order:
-   - *"What is the Motor loss ratio by accident year? Plot it."*
-   - *"Why is Motor 2023 worse than 2021 — break the loss ratio down by
-     region and channel."*
-   - *"Which segment had the biggest large-loss impact in 2023?"*
-   After the second answer, click **Show code** — the generated SQL is
-   the trust moment for a technical audience.
-5. **Trust + Excel stays (60s).** Open `05_parity`, scroll to the
-   tie-out table (all ✓): "the new numbers match the old pivot to the
-   penny — same data, different engine." Then Excel: **Data → Get Data
-   → connect to the Databricks SQL warehouse → select
-   `exp_gold_experience` → build a pivot on live data.** Close: "Excel
-   is still here. It's a window now, not a database."
-6. End card.
+**Tedious/cut:** the macro runtime (scene 2 — edit it away), the `.xlsm`
+build (never film), `00_setup`/`99_validate` (never film).
+**Gold:** scene 3.
 
 ---
 
-## Video 2 — *The model leaves the spreadsheet*
+## Chapter 3 — From Excel pivots to Genie  ★ most shareable, film second
 
-Assets: `demo_02a_scr_sf/`. Built and run pre-shared-path-move —
-re-verify before recording (prep item P5).
+*Assets: `demo_03_experience_genie`. Pre-run all Genie questions warm.*
 
-**Reset / pre-flight**
-1. Confirm `scr_*` tables exist and `scr_scenarios` has the 30-run sweep;
-   re-run `06_orchestrator` + `07_scenarios_mlflow` if stale.
-2. Confirm the MLflow experiment renders (open it, sort runs by `scr`).
-3. Confirm UC functions `scr_total` etc. exist (Catalog Explorer →
-   functions) and the Lakeview dashboard *Demo 2A — SCR Standard
-   Formula* opens.
-4. Excel: `SCR_StandardFormula.xlsm` open on the `Aggregation` tab;
-   Power Query connection to the warehouse configured and dry-run
-   (prep item P6).
+1. **Cold open (Excel).** Build the region × status pivot from the extract;
+   add a chart. Familiar, comfortable.
+2. **The turn.** One line on screen: *bigger? different cut? shareable?*
+3. **Same data, bigger (Databricks).** `exp_claims_listing` in Catalog
+   Explorer — comments, lineage. "Same data, the whole book."
+4. **Genie (the hero).** Type a question → a chart appears. Then the
+   money question: *"why is Motor 2023 worse than 2021?"* → Genie draws the
+   breakdown. Click **Show code** for 2s.
+5. **Dashboard.** The published AI/BI dashboard; point at the shared link.
+6. **Close.** Back to the app tile.
 
-**Run sheet**
-1. **Cold open (45s).** The SCR workbook: `Assumptions` tab (σ values +
-   correlation matrix), module tabs, then the `Aggregation` tab's giant
-   `=SQRT(...)` formula. Show the `RunScenarios` macro in the VBA editor
-   (⌥F11): a hardcoded loop writing rows to a `Scenarios` tab. "This is
-   a regulatory capital model living in a file on a laptop."
-2. **The rebuild (60s).** Workspace folder `demo_02a_scr_sf/src/`:
-   notebooks `01`→`06`, one per module — same maths, versioned, reviewed.
-   Open `05_aggregation` and show the same formula as *readable code*
-   next to the assumptions coming from a governed Delta table with an
-   `effective_date`.
-3. **MLflow sweep (75s).** Run (or show the completed) `07_scenarios_mlflow`.
-   Open the MLflow experiment: 30 scenario runs, sort by SCR, open the
-   worst run, show logged params (shocks) and metrics (module SCRs).
-   "The macro wrote rows to a tab. This logs every scenario with full
-   lineage — compare any two runs."
-4. **Parity (30s).** `08_parity_test` output: Excel oracle ⇄ Databricks
-   to the penny.
-5. **The round-trip (75s — the headline).** Excel `Round_Trip` tab: type
-   an interest-rate shock and a motor uplift, hit **Refresh**. Power
-   Query calls the UC `scr_total` function; the SCR breakdown lands back
-   in the sheet. "The actuary keeps the Excel front-end. The model now
-   runs on the platform — governed, logged, one version of the truth."
-6. End card.
+**Tedious/cut:** the `00→08` data build (never film). **Watch:** Genie
+latency — only use pre-warmed takes; cut any spinner. **Gold:** scene 4.
 
 ---
 
-## Video 1 — *The VBA nobody understands* (demo 0; stage 1 manual, stage 2 automated)
+## Chapter 5 — Connect it all  ★ short, satisfying finale (45–75s)
 
-Assets: `demo_00_vba_csv_etl/`. **The complete scene-by-scene script,
-one-time setup, reset procedure, Genie Code prompts and expected numbers
-live in [`demo_00_vba_csv_etl/DEMO_GUIDE.md`](demo_00_vba_csv_etl/DEMO_GUIDE.md)**
-— that guide is the run sheet for this video. Summary:
+*Assets: `demo_05_orchestration`. Job pre-created; UC1–3 already run once.*
 
-1. **Stage 1 — the ritual, then the migration (~3 min).** Actuary
-   "downloads" the TPA bordereau CSV → runs the old macro in
-   `Bordereau_ETL.xlsm` → exports the standardised CSV ("goes into the
-   pricing system — not today's topic"). Then the two Genie Code
-   prompts: *what does this code do?* (reveal: it silently drops
-   unparseable claims) → *do the same on Databricks* → upload the CSV to
-   the volume → run the converted notebook → bronze → silver +
-   quarantine → reconciliation to the penny.
-2. **Stage 2 — automate it (~1.5 min).** The Lakeflow job with a
-   file-arrival trigger on `incoming/`. Drop next month's file, the run
-   starts on its own, reconciliation passes again. "Same numbers, zero
-   hands."
+1. **The pipeline.** Open the job graph — three tasks, clean → model →
+   report, wired in order.
+2. **Run now.** Click it; the tasks light up green one after another
+   (speed-ramp if needed).
+3. **Schedule.** The schedule dialog → monthly → Create.
+4. **Close.** The whole-journey diagram; back to the app.
 
-(The EIOPA demo 1 assets stay in the repo as the deeper workshop
-material — DLT with expectations remains available there for a future
-technical video if wanted.)
+**Tedious/cut:** `01_create_pipeline_job` Run all (cut straight to the job
+graph). **Gold:** the graph going green.
 
 ---
 
-## Video 4 — *Build the next one yourself* (Lakeflow Designer)
+## Chapter 2 — The model leaves the spreadsheet  (film fourth)
 
-Assets and the full click-by-click walkthrough live in
-`demo_04_lakeflow_designer/README.md` — that doc is the run sheet
-(sources built by `01_sources_check`, canvas steps with Genie Code
-prompts, parity via `02_parity`, governance close). Designer is GA;
-confirm **New → Data prep** appears on the recording workspace (P7) and
-dry-run the canvas once.
+*Assets: `demo_02b_sf_model_uc`. Weakest visuals — carry it on the outputs,
+not the Run-alls.*
 
-**Reset / pre-flight**
-1. Confirm Lakeflow Designer preview is enabled on the recording
-   workspace (P7). Fallback: enroll, or record on a workspace that has it.
-2. Volume `exp_landing` has the three CSVs (from demo 3's `01`).
-3. Pre-compute the target numbers: total earned premium, incurred and
-   blended loss ratio from `exp_gold_experience` (for the parity beat).
-4. Delete any `exp_designer_*` tables from prior takes.
+1. **Cold open (Excel).** `SF_Model.xlsx`: change an input, SCR recalcs.
+   Point at the Calibration tab — "retyped in 100 files every quarter."
+2. **The model becomes an asset.** `02_register_model` concept, then cut to
+   **Catalog Explorer → Models → sfm_scr_model**: versions, lineage. Visual.
+3. **Whole group at once.** `sfm_results` — 100 entities, `model_version`
+   on every row. (Don't film the Run-all; cut to the table.)
+4. **The payoff.** The 2026 recalibration → `sfm_impact` table: group SCR
+   +9.9%, by module. One strong number on screen.
+5. **Close.** App tile.
 
-**Run sheet**
-1. **Cold open (30s).** "Videos 1–3: we migrated it for you. This one:
-   your analysts build the next pipeline themselves — no code."
-2. **Source (60s).** New pipeline in Lakeflow Designer. Add the three
-   CSVs from `exp_landing` as sources (`claims_transactions`,
-   `premium_exposure`, `segment_map`) — point out these are literally
-   the actuary's monthly system exports.
-3. **Transform visually (120s).** Drag-drop, narrating each Excel
-   equivalent:
-   - join claims → segment_map on `policy_segment` ("the VLOOKUP");
-   - derived column `accident_year` from `accident_date` ("the helper
-     column");
-   - conditional split / expression: payments+recoveries vs reserve
-     changes ("the SUMIFS");
-   - aggregate by line_of_business × accident_year: incurred, earned
-     premium (joined from premium source), loss ratio ("the PivotTable").
-4. **Target + run (60s).** Write to
-   `actuarial_excel_demo.exp_designer_experience` (keep the `exp_designer_`
-   prefix). Run. Open the result table.
-5. **Parity + operate (45s).** Side-by-side query: `exp_designer_experience`
-   vs `exp_gold_experience` totals — same numbers as the coded pipeline.
-   Show the schedule button ("monthly, unattended") and that the output
-   is instantly Genie-able because it's a governed UC table.
-6. End card: full recipe, all four videos named.
+**Tedious/cut:** filming `01`–`04` Run-alls in sequence (monotonous — cut to
+outputs only). **Gold:** the impact table.
 
 ---
 
-## Prep backlog (build before recording)
+## Chapter 4 — Build a step with no code (Designer)  (film last; edit hard)
 
-| # | Task | For | Notes |
-|---|---|---|---|
-| P1 | ~~Demo 0 track~~ **DONE** — built and verified (`demo_00_vba_csv_etl/`) | V1 | see DEMO_GUIDE.md |
-| P2 | One-time Excel step: import `ClaimsBordereauETL.bas` into `Bordereau_ETL.xlsx`, save as `.xlsm`, dry-run the macro (expect 44,216 claims for month 11) | V1 | 5 minutes, DEMO_GUIDE Part A1 |
-| P4 | Dry-run the two Genie Code prompts (in `demo_00_vba_csv_etl/excel/VBA_SPEC.md`) — confirm the explanation surfaces the silent row-drops | V1 | Answers vary — rehearse |
-| P5 | Re-verify demo 2A end-to-end on the shared path (tables, MLflow experiment, UDFs, dashboard) | V2 | Built before the /Shared move |
-| P6 | Configure + dry-run the Excel↔warehouse connections on the recording machine: demo 2A Power Query round-trip AND demo 3 live table connection. **Risk:** Excel for Mac's Get Data has limited connectors — if the Databricks/ODBC path fails on Mac, record the Excel connectivity scenes on a Windows VM (Excel 365 + Databricks ODBC driver) | V2, V3 | Do this first — it's the long pole |
-| P7 | Check Lakeflow Designer preview availability on the recording workspace; enroll if needed | V4 | Gates video 4 |
-| P8 | Design the shared end card (recipe diagram + repo URL + synthetic-data disclaimer) | all | One asset, reused |
+*Assets: `demo_04_lakeflow_designer`. The hardest to film — do NOT show the
+7 steps or the SQL box in real time.*
+
+1. **Cold open.** A desktop ETL canvas (or a still) — "this lives on one
+   laptop."
+2. **Build, montage.** Fast-cut the canvas coming together: drop sources,
+   the Genie-Code one-liner building the join+aggregate, the boxes named.
+   **Show the no-code path only** — do not film the SQL operator or the
+   untick-duplicate-keys step; they read as fiddly and off-message.
+3. **Result + proof.** The output table; `02_parity` all ✓ — "same numbers
+   as the coded pipeline."
+4. **Governance beat.** Right-click → code pane (it's real code) → Lineage.
+5. **Close.** App tile.
+
+**Bad/tedious:** the full manual build, the SQL box, the duplicate-key
+untick — all off-camera or heavily edited. If short on time, **fold this
+into Chapter 5** as a 20s "and steps can be built with no code too" rather
+than a standalone video.
+**Gold:** the boxes assembling + parity ✓.
+
+---
+
+## What's good, bad, useless — summary
+
+- **Good on camera:** UC1's Genie-Code reveal; UC3's type-a-question-get-a-
+  chart; UC5's pipeline going green; UC2's impact number. The before→after
+  rhythm and the flow PNGs as transitions.
+- **Tedious (edit away):** every notebook Run-all wait; the UC2 sequence of
+  four near-identical notebook screens; the UC1 macro runtime.
+- **Bad for video (reframe/hide):** UC4's manual canvas + SQL box — never
+  film in real time; montage the no-code path only.
+- **Useless on camera (prep, never film):** all `00_setup`/`99_validate`,
+  the `.xlsm` build, UC3's data-generation notebooks, job/space creation
+  notebooks — cut straight to the created asset.
