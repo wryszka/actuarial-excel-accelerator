@@ -35,30 +35,30 @@ SCENARIOS = [
         "id": "uc1",
         "n": 1,
         "title": "The VBA nobody understands",
-        "strap": "A legacy macro cleans the monthly claims bordereau — nobody remembers how.",
-        "wow": "Genie Code explains the VBA — revealing it has been silently dropping claims "
-               "for years — then converts it. A file-arrival job runs the pipeline unattended, "
-               "and reconciliation ties out to the penny.",
+        "strap": "A slow monthly Excel macro cleans the claims listing — nobody remembers how.",
+        "wow": "Genie Code explains the old VBA — revealing it has silently dropped claims for "
+               "years — then rewrites it. The notebook cleans 200k rows in seconds (the macro "
+               "takes minutes), runs on a daily schedule, and matches Excel to the penny.",
         "folder": f"{FOLDER}/demo_00_vba_csv_etl",
         "doc_tab": os.getenv("DOC_TAB_UC1", "t.bzv4poipaxlz"),
         "youtube": os.getenv("YT_UC1", ""),
-        "tables": ["brd_bronze_claims", "brd_silver_claims", "brd_quarantine"],
-        "does": "Migrates a legacy Excel + VBA data-cleaning process to a governed, "
-                "automated Databricks pipeline — and shows you can trust the result.",
+        "tables": ["brd_claims_raw", "brd_claims_clean", "brd_quarantine"],
+        "does": "Moves a slow, monthly Excel + VBA claims-cleaning macro to Databricks: the "
+                "same rules run in seconds, on a schedule, with the result proven identical.",
         "steps": [
-            "The 'before': an actuary downloads the monthly claims bordereau CSV and runs "
-            "an old Excel macro that cleans it (dedupe, parse dates, map status codes, "
-            "compute incurred) and exports a standardised file for the pricing system.",
+            "The 'before': every month the actuary runs an old Excel macro that cleans a "
+            "claims CSV (dedupe, parse dates, tidy money, incurred, large-loss flag) — row "
+            "by row, taking minutes on a full file.",
             "Paste the VBA into Genie Code and ask what it does — it reveals the macro has "
-            "been silently dropping claims with unparseable dates for years.",
-            "Ask Genie Code to convert it: you get a notebook that applies the same rules, "
-            "landing bronze → silver, and quarantines the bad rows instead of dropping them.",
-            "Reconcile: the notebook's output ties out to the old Excel file to the penny — "
-            "plus the claims Excel was throwing away are now visible.",
-            "Automate it: a file-arrival job runs the whole pipeline the moment next month's "
-            "file lands in the volume. No one runs anything by hand again.",
+            "been silently dropping claims with unreadable dates for years.",
+            "Ask Genie Code to rewrite it as a notebook (keeping the dropped rows in a "
+            "quarantine table instead of losing them).",
+            "Point it at the data — the ready-made table or your own uploaded CSV — and run: "
+            "200k rows cleaned in seconds, not minutes.",
+            "Schedule the notebook to run every morning by itself, then reconcile: it matches "
+            "the Excel output to the penny, and the rows Excel dropped are now safely kept.",
         ],
-        "reset_note": "Drops the brd_ tables and clears incoming/ (~1 min).",
+        "reset_note": "Rebuilds the raw table and drops the clean/quarantine tables (~1 min).",
     },
     {
         "id": "uc2",

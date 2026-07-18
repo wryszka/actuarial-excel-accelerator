@@ -1,21 +1,24 @@
 # Databricks notebook source
 # MAGIC %md
-# MAGIC # Demo 0 · Setup — volume + reset switch
+# MAGIC # Use Case 1 · Setup — put the demo files in place
 # MAGIC
-# MAGIC **The VBA nobody understands** — demo 0 of the Actuarial Excel
-# MAGIC Accelerator: a monthly TPA claims bordereau processed by a legacy Excel
-# MAGIC macro, migrated to Databricks by asking Genie Code to *explain* the VBA
-# MAGIC and then *convert* it. All assets are prefixed **`brd_`** in the shared
-# MAGIC schema.
+# MAGIC **The story:** every month an actuary gets a claims listing as a CSV,
+# MAGIC runs an old Excel macro that cleans it up, and sends the result on. This
+# MAGIC use case moves that macro to Databricks — same result, in seconds, run
+# MAGIC on a schedule.
 # MAGIC
-# MAGIC Idempotent. Creates the `brd_landing` volume with an `incoming/` folder
-# MAGIC (watched by the stage-2 file-arrival job) and a `reference/` folder (for
-# MAGIC the VBA-produced output used in reconciliation).
+# MAGIC This notebook just puts things in place. It:
 # MAGIC
-# MAGIC Set the `reset` widget to `yes` between recording takes: drops the
-# MAGIC `brd_` tables and clears `incoming/` so the demo starts clean.
+# MAGIC 1. creates a **volume** (a folder in Databricks) called `brd_landing`,
+# MAGIC 2. copies the raw claims CSV into it, and
+# MAGIC 3. loads that CSV into a ready-made table **`brd_claims_raw`** — so in
+# MAGIC    the demo you can either upload your own CSV *or* just point at this
+# MAGIC    table.
 # MAGIC
-# MAGIC > **About this demo.** All data is synthetic; no customer data is used.
+# MAGIC Everything is named with a `brd_` prefix so it's easy to find. Run it
+# MAGIC once (click **Run all** at the top). Set `reset = yes` to start clean.
+# MAGIC
+# MAGIC > All data is synthetic; no customer data is used.
 
 # COMMAND ----------
 
@@ -36,34 +39,70 @@ spark.sql(f"CREATE SCHEMA IF NOT EXISTS {fqn}")
 spark.sql(f"CREATE VOLUME IF NOT EXISTS {fqn}.{volume}")
 spark.sql(f"""
     COMMENT ON VOLUME {fqn}.{volume} IS
-    'Demo 0 (VBA bordereau ETL) landing zone. incoming/ receives the monthly '
-    'TPA bordereau CSVs and is watched by the file-arrival job; reference/ '
-    'holds the legacy VBA output used for reconciliation.'
+    'Use Case 1 landing folder: the monthly raw claims CSV lands here. '
+    'Synthetic data.'
 """)
-dbutils.fs.mkdirs(f"{vol_path}/incoming")
-dbutils.fs.mkdirs(f"{vol_path}/reference")
-print(f"✓ volume {vol_path} (incoming/, reference/)")
+print(f"✓ volume ready: {vol_path}")
 
 try:
     spark.sql(f"GRANT READ VOLUME ON VOLUME {fqn}.{volume} TO `account users`")
-    print("✓ volume grant applied")
 except Exception as e:
-    print(f"[skip] grants: {str(e)[:120]}")
+    print(f"[skip] grant: {str(e)[:120]}")
 
 # COMMAND ----------
 
 if dbutils.widgets.get("reset") == "yes":
-    for t in ["brd_bronze_claims", "brd_silver_claims", "brd_quarantine"]:
+    for t in ["brd_claims_raw", "brd_claims_clean", "brd_quarantine", "brd_excel_output"]:
         spark.sql(f"DROP TABLE IF EXISTS {fqn}.{t}")
         print(f"✓ dropped {fqn}.{t}")
-    for f in dbutils.fs.ls(f"{vol_path}/incoming"):
-        dbutils.fs.rm(f.path)
-        print(f"✓ removed {f.path}")
-    print("Reset complete — clean slate for the next take.")
-else:
-    print("No reset requested (set reset=yes between recording takes).")
 
 # COMMAND ----------
 
-print("Setup complete. Next: upload a bordereau CSV to "
-      f"{vol_path}/incoming and run 01_bordereau_etl.")
+# MAGIC %md
+# MAGIC ## Copy the raw CSV into the volume
+# MAGIC
+# MAGIC The file ships next to this notebook; we copy it into the volume so it
+# MAGIC behaves exactly like a file you'd upload yourself.
+
+# COMMAND ----------
+
+import os
+import shutil
+
+nb_dir = "/Workspace" + os.path.dirname(
+    dbutils.notebook.entry_point.getDbutils().notebook().getContext().notebookPath().get())
+src = f"{nb_dir}/data/claims_raw.csv"
+dst = f"{vol_path}/claims_raw.csv"
+shutil.copyfile(src, dst)
+print(f"✓ copied claims_raw.csv → {dst}")
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## Load it into a ready-made table
+# MAGIC
+# MAGIC So the demo can skip the upload and just point at `brd_claims_raw`.
+# MAGIC (Read as text — the raw file is deliberately messy; the notebook cleans
+# MAGIC it, exactly like the macro does.)
+
+# COMMAND ----------
+
+raw = (spark.read.format("csv").option("header", "true")
+       .option("inferSchema", "false")
+       .load(dst))
+raw.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{fqn}.brd_claims_raw")
+spark.sql(f"""
+    COMMENT ON TABLE {fqn}.brd_claims_raw IS
+    'Raw monthly claims bordereau, exactly as received from the administrator '
+    '(messy: mixed date formats, currency symbols, duplicate rows). The '
+    'notebook 01 cleans this. Synthetic data.'
+""")
+n = spark.table(f"{fqn}.brd_claims_raw").count()
+print(f"✓ {fqn}.brd_claims_raw — {n:,} rows")
+
+# COMMAND ----------
+
+print("Setup complete.")
+print(f"  Raw file:  {dst}")
+print(f"  Raw table: {fqn}.brd_claims_raw")
+print("Next: open 01_clean_claims and click Run all.")

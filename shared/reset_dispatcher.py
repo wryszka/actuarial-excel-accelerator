@@ -7,7 +7,7 @@
 # MAGIC
 # MAGIC | scenario | what happens | takes |
 # MAGIC |---|---|---|
-# MAGIC | `uc1` | demo 0: drop `brd_` tables, clear `incoming/` — clean slate for the bordereau demo | ~1 min |
+# MAGIC | `uc1` | use case 1: rebuild the raw claims table, drop the clean/quarantine tables | ~1 min |
 # MAGIC | `uc2` | use case 2: drop `sfm_` tables, re-copy volume files (model versions kept by design) | ~1 min |
 # MAGIC | `uc3` | use case 3: full world regen (data → bronze → silver → gold → listing), Genie space back to the single-table starter, dashboards re-published | ~15 min |
 # MAGIC | `uc4` | use case 4: rebuild the Designer source tables, drop the canvas output | ~2 min |

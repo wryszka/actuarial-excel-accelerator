@@ -2,128 +2,98 @@ Attribute VB_Name = "ClaimsBordereauETL"
 Option Explicit
 
 ' =====================================================================
-'  ClaimsBordereauETL
+'  CleanBordereau
 '
-'  Imports the monthly TPA claims bordereau CSV, standardises it and
-'  exports a clean CSV for the pricing-system upload.
+'  Reads the monthly claims bordereau CSV, cleans and enriches it, and
+'  writes <input>_CLEAN.csv for the pricing / reserving upload.
 '
-'  Author unknown. Last materially changed a long time ago.
-'  DO NOT TOUCH BEFORE MONTH-END.
+'  Author unknown. Last touched years ago. Runs row by row, so it takes
+'  a couple of minutes on a full monthly file. DO NOT edit before close.
 ' =====================================================================
 
-Sub RunMonthlyETL()
+Sub CleanBordereau()
     Dim csvPath As Variant
     csvPath = Application.GetOpenFilename("CSV Files (*.csv),*.csv", , _
-                                          "Select the monthly bordereau CSV")
+                                          "Select the monthly claims CSV")
     If VarType(csvPath) = vbBoolean Then Exit Sub
 
-    Dim wsRaw As Worksheet, wsStd As Worksheet
-    Set wsRaw = PrepareSheet("Raw")
-    Set wsStd = PrepareSheet("Standardised")
-
-    ' ---- read the whole file ----
+    Dim t0 As Double: t0 = Timer
     Dim f As Integer: f = FreeFile
-    Dim lines() As String, nLines As Long
-    ReDim lines(1 To 60000)
-    Open csvPath For Input As #f
-    Do While Not EOF(f)
-        nLines = nLines + 1
-        If nLines > UBound(lines) Then ReDim Preserve lines(1 To UBound(lines) + 20000)
-        Line Input #f, lines(nLines)
-    Loop
-    Close #f
-    If nLines < 2 Then MsgBox "Empty file.": Exit Sub
-
-    ' ---- dump raw as-is (audit tab) ----
-    Dim rawArr() As Variant, i As Long
-    ReDim rawArr(1 To nLines, 1 To 1)
-    For i = 1 To nLines: rawArr(i, 1) = lines(i): Next i
-    wsRaw.Range("A1").Resize(nLines, 1).Value = rawArr
-
-    ' ---- standardise ----
-    Dim outArr() As Variant
-    ReDim outArr(1 To nLines, 1 To 10)
-    Dim outN As Long
+    Dim line As String, cells() As String
     Dim seen As New Collection
-    Dim parts() As String
-    Dim isoLoss As String, isoRep As String
-    Dim paid As Double, outst As Double
+    Dim ref As String, isoLoss As String, isoRep As String
+    Dim paid As Double, outst As Double, incurred As Double
+    Dim outRow As Long: outRow = 2
+    Dim n As Long
 
-    For i = 2 To nLines                       ' skip header
-        parts = Split(lines(i), ",")
-        If UBound(parts) < 9 Then GoTo NextRow
+    Dim ws As Worksheet
+    Set ws = ThisWorkbook.Worksheets("Clean")     ' a sheet named "Clean" must exist
+    ws.Cells.Clear
+    ws.Range("A1:J1").Value = Array("claim_ref", "policy_ref", "loss_date", _
+        "report_date", "status", "peril", "paid_gbp", "outstanding_gbp", _
+        "incurred_gbp", "large_loss_flag")
 
-        ' the vendor extract double-fires: keep first occurrence per claim
+    Open csvPath For Input As #f
+    Line Input #f, line                            ' skip header
+    Do While Not EOF(f)
+        Line Input #f, line
+        cells = Split(line, ",")
+        If UBound(cells) < 8 Then GoTo NextRow
+
+        ' de-duplicate: the vendor extract double-fires
+        ref = Trim(cells(0))
         On Error Resume Next
-        seen.Add True, Trim(parts(0))
+        seen.Add True, ref
         If Err.Number <> 0 Then Err.Clear: On Error GoTo 0: GoTo NextRow
         On Error GoTo 0
 
-        isoLoss = ParseDateISO(Trim(parts(2)))
-        If isoLoss = "" Then GoTo NextRow     ' loss date unusable -> skip row
-        isoRep = ParseDateISO(Trim(parts(3))) ' blank if unusable
+        ' loss date must parse, or the row is skipped
+        isoLoss = ParseDateISO(Trim(cells(2)))
+        If isoLoss = "" Then GoTo NextRow
+        isoRep = ParseDateISO(Trim(cells(3)))
 
-        paid = ParseAmount(Trim(parts(8)))
-        outst = ParseAmount(Trim(parts(9)))
+        paid = ParseAmount(Trim(cells(7)))
+        outst = ParseAmount(Trim(cells(8)))
+        incurred = Round(paid + outst, 2)
 
-        outN = outN + 1
-        outArr(outN, 1) = Trim(parts(0))              ' claim_ref
-        outArr(outN, 2) = Trim(parts(1))              ' policy_no
-        outArr(outN, 3) = isoLoss                     ' loss_date
-        outArr(outN, 4) = isoRep                      ' report_date
-        outArr(outN, 5) = MapStatus(parts(4))         ' status
-        outArr(outN, 6) = Trim(parts(5))              ' peril_code
-        outArr(outN, 7) = Trim(parts(6))              ' region
-        outArr(outN, 8) = paid                        ' paid_gbp
-        outArr(outN, 9) = outst                       ' outstanding_gbp
-        outArr(outN, 10) = Round(paid + outst, 2)     ' incurred_gbp
+        ws.Cells(outRow, 1).Value = ref
+        ws.Cells(outRow, 2).Value = Trim(cells(1))
+        ws.Cells(outRow, 3).Value = isoLoss
+        ws.Cells(outRow, 4).Value = isoRep
+        ws.Cells(outRow, 5).Value = MapStatus(cells(4))
+        ws.Cells(outRow, 6).Value = Trim(cells(5))
+        ws.Cells(outRow, 7).Value = paid
+        ws.Cells(outRow, 8).Value = outst
+        ws.Cells(outRow, 9).Value = incurred
+        ws.Cells(outRow, 10).Value = IIf(incurred > 100000#, "Y", "N")
+        outRow = outRow + 1
+        n = n + 1
 NextRow:
-    Next i
+    Loop
+    Close #f
 
-    ' ---- write the Standardised tab ----
-    wsStd.Range("A1:J1").Value = Array("claim_ref", "policy_no", "loss_date", _
-        "report_date", "status", "peril_code", "region", "paid_gbp", _
-        "outstanding_gbp", "incurred_gbp")
-    If outN > 0 Then wsStd.Range("A2").Resize(outN, 10).Value = outArr
-
-    ExportStandardised wsStd, CStr(csvPath), outN + 1
-    MsgBox outN & " claims standardised and exported.", vbInformation, "Bordereau ETL"
+    ExportClean ws, CStr(csvPath), outRow - 1
+    MsgBox n & " claims cleaned in " & Format(Timer - t0, "0.0") & " seconds.", _
+           vbInformation, "Bordereau ETL"
 End Sub
 
-' ---------------------------------------------------------------------
-Private Function PrepareSheet(sheetName As String) As Worksheet
-    Application.DisplayAlerts = False
-    On Error Resume Next
-    ThisWorkbook.Worksheets(sheetName).Delete
-    On Error GoTo 0
-    Application.DisplayAlerts = True
-    Set PrepareSheet = ThisWorkbook.Worksheets.Add( _
-        After:=ThisWorkbook.Sheets(ThisWorkbook.Sheets.Count))
-    PrepareSheet.Name = sheetName
-    ' keep ISO dates as text so Excel does not re-mangle them on export
-    If sheetName = "Standardised" Then PrepareSheet.Columns("C:D").NumberFormat = "@"
-End Function
-
+' ------------------------------------------------------------------ helpers
 ' Accepts dd/mm/yyyy, yyyy-mm-dd and dd-Mon-yy. Anything else -> "".
 Private Function ParseDateISO(s As String) As String
-    Dim d As Long, m As Long, y As Long
-    Dim p() As String
+    Dim d As Long, m As Long, y As Long, p() As String
     ParseDateISO = ""
     If s = "" Then Exit Function
     On Error GoTo Bad
     If InStr(s, "/") > 0 Then
         p = Split(s, "/")
         If UBound(p) <> 2 Then Exit Function
-        If Not (IsNumeric(p(0)) And IsNumeric(p(1)) And IsNumeric(p(2))) Then Exit Function
         d = CLng(p(0)): m = CLng(p(1)): y = CLng(p(2))
     ElseIf InStr(s, "-") > 0 Then
         p = Split(s, "-")
         If UBound(p) <> 2 Then Exit Function
-        If Len(p(0)) = 4 Then                          ' yyyy-mm-dd
-            If Not (IsNumeric(p(0)) And IsNumeric(p(1)) And IsNumeric(p(2))) Then Exit Function
+        If Len(p(0)) = 4 Then
             y = CLng(p(0)): m = CLng(p(1)): d = CLng(p(2))
-        Else                                            ' dd-Mon-yy
-            If Not (IsNumeric(p(0)) And IsNumeric(p(2))) Then Exit Function
+        Else
             d = CLng(p(0)): m = MonthNo(p(1)): y = 2000 + CLng(p(2))
             If m = 0 Then Exit Function
         End If
@@ -131,7 +101,7 @@ Private Function ParseDateISO(s As String) As String
         Exit Function
     End If
     If m < 1 Or m > 12 Or d < 1 Or d > 31 Then Exit Function
-    If Day(DateSerial(y, m, d)) <> d Then Exit Function  ' catches 31/04 etc.
+    If Day(DateSerial(y, m, d)) <> d Then Exit Function
     ParseDateISO = Format(DateSerial(y, m, d), "yyyy-mm-dd")
     Exit Function
 Bad:
@@ -181,9 +151,9 @@ Private Function MapStatus(s As String) As String
     End Select
 End Function
 
-Private Sub ExportStandardised(ws As Worksheet, inputPath As String, nRows As Long)
+Private Sub ExportClean(ws As Worksheet, inputPath As String, nRows As Long)
     Dim outPath As String
-    outPath = Left(inputPath, InStrRev(inputPath, ".") - 1) & "_STANDARDISED.csv"
+    outPath = Left(inputPath, InStrRev(inputPath, ".") - 1) & "_CLEAN.csv"
     Dim wbOut As Workbook
     Set wbOut = Workbooks.Add
     ws.Range("A1").Resize(nRows, 10).Copy wbOut.Sheets(1).Range("A1")

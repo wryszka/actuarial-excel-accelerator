@@ -1,9 +1,7 @@
 # Databricks notebook source
 # MAGIC %md
-# MAGIC # Demo 0 · Smoke test
-# MAGIC
-# MAGIC One row per check, fails loudly. Assumes at least one bordereau CSV has
-# MAGIC been ingested (00 → upload → 01 → 03).
+# MAGIC # Use Case 1 · Smoke test
+# MAGIC One row per check, fails loudly. Run after 00 → 01 → 02.
 
 # COMMAND ----------
 
@@ -29,56 +27,30 @@ def rows(t):
 
 # COMMAND ----------
 
-check("bronze populated (>= 44k/file)", lambda: (rows("brd_bronze_claims") >= 44_000,
-                                                 f"{rows('brd_bronze_claims'):,}"))
-check("silver populated", lambda: (rows("brd_silver_claims") > 40_000,
-                                   f"{rows('brd_silver_claims'):,}"))
-check("quarantine caught the silent drops", lambda: (rows("brd_quarantine") > 0,
-                                                     f"{rows('brd_quarantine')}"))
+check("raw loaded (~200k)", lambda: (rows("brd_claims_raw") > 150_000, f"{rows('brd_claims_raw'):,}"))
+check("clean claims produced", lambda: (rows("brd_claims_clean") > 150_000, f"{rows('brd_claims_clean'):,}"))
+check("quarantine caught dropped rows", lambda: (rows("brd_quarantine") > 0, f"{rows('brd_quarantine')}"))
 
 
 def conservation():
-    # per source file: distinct claim refs in bronze == silver + quarantine
-    df = spark.sql(f"""
-        WITH b AS (SELECT _source_file f, COUNT(DISTINCT ClaimRef) n
-                   FROM {fqn}.brd_bronze_claims GROUP BY 1),
-             s AS (SELECT _source_file f, COUNT(*) n
-                   FROM {fqn}.brd_silver_claims GROUP BY 1),
-             q AS (SELECT _source_file f, COUNT(*) n
-                   FROM {fqn}.brd_quarantine GROUP BY 1)
-        SELECT b.f, b.n AS bronze_refs,
-               COALESCE(s.n,0) + COALESCE(q.n,0) AS silver_plus_quarantine
-        FROM b LEFT JOIN s ON b.f = s.f LEFT JOIN q ON b.f = q.f
-    """).collect()
-    bad = [r for r in df if r.bronze_refs != r.silver_plus_quarantine]
-    return (len(bad) == 0, f"{len(df)} file(s), all conserve rows" if not bad else str(bad[0]))
+    b = spark.table(f"{fqn}.brd_claims_raw").select("ClaimRef").distinct().count()
+    c = rows("brd_claims_clean") + rows("brd_quarantine")
+    return (b == c, f"distinct raw refs {b} == clean+quarantine {c}")
 
 
-check("row conservation (nothing lost)", conservation)
+check("nothing lost (dedup accounted for)", conservation)
 
 
-def no_unparsed_money():
-    n = spark.sql(f"SELECT COUNT(*) FROM {fqn}.brd_silver_claims "
-                  "WHERE paid_gbp IS NULL OR outstanding_gbp IS NULL").first()[0]
-    return (n == 0, f"{n} null amounts")
+def parity():
+    from pyspark.sql import functions as F
+    if not spark.catalog.tableExists(f"{fqn}.brd_excel_output"):
+        return (False, "run 02_reconciliation first")
+    e = spark.table(f"{fqn}.brd_excel_output").agg(F.round(F.sum("incurred_gbp"), 2)).first()[0]
+    d = spark.table(f"{fqn}.brd_claims_clean").agg(F.round(F.sum("incurred_gbp"), 2)).first()[0]
+    return (abs(e - d) <= 0.01, f"excel £{e:,.0f} vs databricks £{d:,.0f}")
 
 
-check("all amounts parsed", no_unparsed_money)
-
-
-def job_exists():
-    from databricks.sdk import WorkspaceClient
-    w = WorkspaceClient()
-    j = next((x for x in w.jobs.list(name="Demo 0 — Bordereau ETL (file-arrival)")), None)
-    if not j:
-        return (False, "job not found")
-    s = w.jobs.get(j.job_id).settings
-    has_trigger = s.trigger is not None and s.trigger.file_arrival is not None
-    return (has_trigger, f"job {j.job_id}, file-arrival trigger "
-            f"{'armed' if has_trigger else 'MISSING'}")
-
-
-check("file-arrival job exists", job_exists)
+check("Excel ⇄ Databricks incurred matches", parity)
 
 # COMMAND ----------
 
@@ -86,6 +58,6 @@ import pandas as pd
 df = pd.DataFrame(results, columns=["check", "status", "detail"])
 display(spark.createDataFrame(df))
 n_fail = (df.status == "FAIL").sum()
-print(f"\n{len(df) - n_fail}/{len(df)} checks passed")
+print(f"\n{len(df) - n_fail}/{len(df)} passed")
 assert n_fail == 0, f"{n_fail} checks FAILED"
 print("✓ ALL CHECKS PASSED")
